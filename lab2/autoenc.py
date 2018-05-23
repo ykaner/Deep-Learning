@@ -1,3 +1,5 @@
+#! python3
+
 """ Auto Encoder Example.
 
 Build a 2 layers auto-encoder with TensorFlow to compress images to a
@@ -14,6 +16,7 @@ Links:
 Author: Aymeric Damien
 Project: https://github.com/aymericdamien/TensorFlow-Examples/
 """
+
 from __future__ import absolute_import, division, print_function
 
 import matplotlib.pyplot as plt
