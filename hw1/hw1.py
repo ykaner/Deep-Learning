@@ -1,4 +1,6 @@
+from __future__ import print_function
 import tensorflow as tf
+
 
 from tensorflow.examples.tutorials.mnist import input_data
 
@@ -9,17 +11,19 @@ mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 in_shape = 28 * 28
 out_shape = 10
 
+
 learning_rate = 0.001
 epochs = 15
 batch_size = 100
 
 
 def fully_connected(input, weights, biases, activations):
-	layers = []
-	layers.append(input)
-	for w, b, ac in zip(weights, biases, activations):
-		layer = ac(tf.matmul(layers[-1], w) + b)
-		layers.append(layer)
+	with tf.device('gpu:0'):
+		layers = []
+		layers.append(input)
+		for w, b, ac in zip(weights, biases, activations):
+			layer = ac(tf.matmul(layers[-1], w) + b)
+			layers.append(layer)
 	
 	return layers
 
