@@ -1,3 +1,5 @@
+#! python3
+
 import math
 import os
 import pickle
@@ -10,6 +12,8 @@ from time import time
 import numpy as np
 import tensorflow as tf
 
+import utils.tensorboard
+
 
 def weight_variable(shape):
 	initial = tf.truncated_normal(shape, stddev=0.1)
@@ -21,12 +25,8 @@ def bias_variable(shape):
 	return tf.Variable(initial)
 
 
-def conv2d(x, W):
-	return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
-
-
-def max_pool_2x2(x):
-	return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+def max_pool_2x2(x, name):
+	return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
 
 
 def model():
@@ -34,52 +34,67 @@ def model():
 	_IMAGE_CHANNELS = 3
 	_NUM_CLASSES = 10
 	
-	x = tf.placeholder(tf.float32, shape=[None, _IMAGE_SIZE * _IMAGE_SIZE * _IMAGE_CHANNELS], name='Input')
-	y = tf.placeholder(tf.float32, shape=[None, _NUM_CLASSES], name='Output')
-	x_image = tf.reshape(x, [-1, _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS], name='images')
-	# keep_prob1 = tf.placeholder(tf.float32 , name ="koko1")
-	keep_prob2 = tf.placeholder(tf.float32, name="koko2")
+	with tf.name_scope('input'):
+		x = tf.placeholder(tf.float32, shape=[None, _IMAGE_SIZE * _IMAGE_SIZE * _IMAGE_CHANNELS], name='Input')
+		y = tf.placeholder(tf.float32, shape=[None, _NUM_CLASSES], name='Output')
 	
-	w1 = weight_variable([3, 3, 3, 32])
-	b1 = bias_variable([32])
-	conv1 = tf.nn.relu(conv2d(x_image, w1) + b1)
-	w1_1 = weight_variable([3, 3, 32, 64])
-	b1_1 = bias_variable([64])
-	conv = tf.nn.relu(conv2d(conv1, w1_1) + b1_1)
-	pool = max_pool_2x2(conv)
-	drop = tf.nn.dropout(pool, keep_prob2)
+	with tf.name_scope('input_reshape'):
+		x_image = tf.reshape(x, [-1, _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS], name='images')
 	
-	w2 = weight_variable([3, 3, 64, 128])
-	b2 = bias_variable([128])
-	conv2 = tf.nn.relu(conv2d(drop, w2) + b2)
-	pool2 = max_pool_2x2(conv2)
+	tf.summary.image("intput", x_image, 10)
 	
-	w3 = weight_variable([2, 2, 128, 128])
-	b3 = bias_variable([128])
-	conv3 = tf.nn.relu(conv2d(pool2, w3) + b3)
-	pool3 = max_pool_2x2(conv3)
-	drop3 = tf.nn.dropout(pool3, keep_prob2)
+	with tf.name_scope('dropout'):
+		keep_prob = tf.placeholder(tf.float32, name="keep_prob")
 	
-	flat = tf.reshape(drop3, [-1, 4 * 4 * 128])
+	tf.summary.scalar('dropout_keep_probability', keep_prob)
 	
-	fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=1500))  # , activation=tf.nn.relu)
-	drop4 = tf.nn.dropout(fc, keep_prob2)
-	fc2 = tf.nn.relu(tf.layers.dense(inputs=drop4, units=1000))
-	drop5 = tf.nn.dropout(fc2, keep_prob2)
+	conv1 = utils.tensorboard.conv2d_layer(x_image, [3, 3, 3, 32], layer_name="conv_1")
 	
-	softmax = tf.nn.softmax(tf.layers.dense(inputs=drop5, units=_NUM_CLASSES))
+	conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 32, 64], layer_name="conv_1_1")
 	
-	y_pred_cls = tf.argmax(softmax, axis=1)
+	pool = max_pool_2x2(conv1_1, name="pool")
 	
-	loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=softmax, labels=y))
+	drop = tf.nn.dropout(pool, keep_prob, name="drop")
 	
-	optimizer = tf.train.AdamOptimizer(1e-4, beta1=0.9,
-	                                   beta2=0.999,
-	                                   epsilon=1e-08).minimize(loss)
+	conv2 = utils.tensorboard.conv2d_layer(drop, [3, 3, 64, 128], layer_name="conv_2")
 	
-	# PREDICTION AND ACCURACY CALCULATION
-	correct_prediction = tf.equal(y_pred_cls, tf.argmax(y, axis=1))
-	accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+	pool2 = max_pool_2x2(conv2, name="pool2")
+	
+	conv3 = utils.tensorboard.conv2d_layer(pool2, [2, 2, 128, 128], layer_name="conv_3")
+	
+	pool3 = max_pool_2x2(conv3, name="pool3")
+	
+	drop3 = tf.nn.dropout(pool3, keep_prob, name="drop3")
+	
+	flat = tf.reshape(drop3, [-1, 4 * 4 * 128], name="flat")
+	
+	with tf.name_scope('fc_1'):
+		fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=1500, name="dense"), name="relu")  # , activation=tf.nn.relu)
+		drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
+	
+	tf.summary.histogram("drop4", drop4)
+	
+	with tf.name_scope('fc_2'):
+		fc2 = tf.nn.relu(tf.layers.dense(inputs=drop4, units=1000, name="dense"), name="fc2")
+		drop5 = tf.nn.dropout(fc2, keep_prob2, name="dropout")
+	
+	tf.summary.histogram("drop5", drop5)
+	
+	with tf.name_scope('total'):
+		softmax = tf.nn.softmax(tf.layers.dense(inputs=drop5, units=_NUM_CLASSES), name="softmax")
+		y_pred_cls = tf.argmax(softmax, axis=1, name="y_pred_cls")
+		
+		loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=softmax, labels=y), name="loss")
+		correct_prediction = tf.equal(y_pred_cls, tf.argmax(y, axis=1), name="correct_predictions")
+		accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="accuracy")
+	
+	tf.summary.scalar("loss", loss)
+	tf.summary.scalar("accuracy", accuracy)
+	tf.summary.scalar("correct_predictions", correct_prediction)
+	
+	with tf.name_scope('train'):
+		optimizer = tf.train.AdamOptimizer(1e-4, beta1=0.9, beta2=0.999, epsilon=1e-08, name="AdamOptimizer").minimize(
+			loss, name="train_step")
 	
 	return x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, keep_prob2
 
@@ -180,8 +195,8 @@ def train(epoch):
 		
 		start_time = time()
 		_, batch_loss, batch_acc = sess.run(
-			[optimizer, loss, accuracy],
-			feed_dict={x: batch_xs, y: batch_ys, keep_prob2: 0.5})
+				[optimizer, loss, accuracy],
+				feed_dict={x: batch_xs, y: batch_ys, keep_prob2: 0.5})
 		duration = time() - start_time
 		
 		if s % 10 == 0:
@@ -202,8 +217,8 @@ def test_and_save(epoch):
 		batch_xs = test_x[i:j, :]
 		batch_ys = test_y[i:j, :]
 		predicted_class[i:j] = sess.run(
-			y_pred_cls,
-			feed_dict={x: batch_xs, y: batch_ys, keep_prob2: 1}
+				y_pred_cls,
+				feed_dict={x: batch_xs, y: batch_ys, keep_prob2: 1}
 		)
 		i = j
 	
@@ -246,7 +261,7 @@ for variable in tf.trainable_variables():
 		variable_parameters *= dim.value
 	total_parameters += variable_parameters
 print(total_parameters)
-raw_input()
+input()
 
 
 def main():
