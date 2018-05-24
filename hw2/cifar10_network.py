@@ -194,10 +194,11 @@ def train(epoch):
 		batch_ys = train_y[s * _BATCH_SIZE: (s + 1) * _BATCH_SIZE]
 		
 		start_time = time()
-		_, batch_loss, batch_acc = sess.run(
-				[optimizer, loss, accuracy],
+		summery, _, batch_loss, batch_acc = sess.run(
+				[merged, optimizer, loss, accuracy],
 				feed_dict={x: batch_xs, y: batch_ys, keep_prob2: 0.5})
 		duration = time() - start_time
+		train_writer.add_summary(summery, s)
 		
 		if s % 10 == 0:
 			percentage = int(round((s / batch_size) * 100))
@@ -209,6 +210,8 @@ def train(epoch):
 
 def test_and_save(epoch):
 	global global_accuracy
+	run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+	run_metadata = tf.RunMetadata()
 	
 	i = 0
 	predicted_class = np.zeros(shape=len(test_x), dtype=np.int)
@@ -216,9 +219,11 @@ def test_and_save(epoch):
 		j = min(i + _BATCH_SIZE, len(test_x))
 		batch_xs = test_x[i:j, :]
 		batch_ys = test_y[i:j, :]
-		predicted_class[i:j] = sess.run(
-				y_pred_cls,
-				feed_dict={x: batch_xs, y: batch_ys, keep_prob2: 1}
+		summary, predicted_class[i:j] = sess.run(
+				[merged, y_pred_cls],
+				feed_dict={x: batch_xs, y: batch_ys, keep_prob2: 1},
+				options=run_options,
+				run_metadata=run_metadata
 		)
 		i = j
 	
@@ -226,6 +231,8 @@ def test_and_save(epoch):
 	acc = correct.mean() * 100
 	correct_numbers = correct.sum()
 	
+	test_writer.add_run_metadata(run_metadata, "epoch{}".format(i))
+	test_writer.add_summary(summary, epoch)
 	mes = "\nEpoch {} - accuracy: {:.2f}% ({}/{})"
 	print(mes.format((epoch + 1), acc, correct_numbers, len(test_x)))
 	
@@ -251,7 +258,13 @@ global_accuracy = 0
 _BATCH_SIZE = 128
 _EPOCH = 300
 
-sess.run(tf.global_variables_initializer())
+merged = tf.summary.merge_all()
+train_writer = tf.summary.FileWriter('/tmp/hw2/train', sess.graph)
+test_writer = tf.summary.FileWriter('/tmp/hw2/test')
+
+tf.global_variables_initializer().run()
+
+
 
 total_parameters = 0
 for variable in tf.trainable_variables():
@@ -265,6 +278,10 @@ input()
 
 
 def main():
+	if tf.gfile.Exists("/temp/hw2"):
+		tf.gfile.DeleteRecursively("/temp/hw2")
+	tf.gfile.MakeDirs("/temp/hw2")
+	
 	for i in range(_EPOCH):
 		print("\nEpoch: {0}/{1}\n".format((i + 1), _EPOCH))
 		train(i)
@@ -272,3 +289,6 @@ def main():
 
 if __name__ == "__main__":
 	main()
+
+train_writer.close()
+test_writer.close()
