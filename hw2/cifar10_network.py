@@ -116,12 +116,12 @@ def get_data_set(name="train"):
 	
 	folder_name = "cifar_10"
 	
-	f = open('c:/tmp/data_set/' + folder_name + '/batches.meta', 'rb')
+	f = open(tmp_path + 'data_set/' + folder_name + '/batches.meta', 'rb')
 	f.close()
 	
 	if name is "train":
 		for i in range(5):
-			f = open('c:/tmp/data_set/' + folder_name + '/data_batch_' + str(i + 1), 'rb')
+			f = open(tmp_path + 'data_set/' + folder_name + '/data_batch_' + str(i + 1), 'rb')
 			datadict = pickle.load(f, encoding="latin1")
 			f.close()
 			
@@ -141,7 +141,7 @@ def get_data_set(name="train"):
 				y = np.concatenate((y, _Y), axis=0)
 	
 	elif name is "test":
-		f = open('c:/tmp/data_set/' + folder_name + '/test_batch', 'rb')
+		f = open(tmp_path + 'data_set/' + folder_name + '/test_batch', 'rb')
 		datadict = pickle.load(f, encoding="latin1")
 		f.close()
 		
@@ -173,7 +173,7 @@ def _print_download_progress(count, block_size, total_size):
 
 
 def maybe_download_and_extract():
-	main_directory = "c:/tmp/data_set/"
+	main_directory = tmp_path + "data_set/"
 	cifar_10_directory = main_directory + "cifar_10/"
 	if not os.path.exists(main_directory):
 		os.makedirs(main_directory)
@@ -268,8 +268,8 @@ _BATCH_SIZE = 128
 _EPOCH = 300
 
 merged = tf.summary.merge_all()
-train_writer = tf.summary.FileWriter('c:/tmp/hw2/train', sess.graph)
-test_writer = tf.summary.FileWriter('c:/tmp/hw2/test')
+train_writer = tf.summary.FileWriter(tmp_path + 'hw2/train', sess.graph)
+test_writer = tf.summary.FileWriter(tmp_path + 'hw2/test')
 
 tf.global_variables_initializer().run(session=sess)
 
@@ -287,9 +287,9 @@ input()
 
 
 def main():
-	if tf.gfile.Exists("c:/temp/hw2"):
-		tf.gfile.DeleteRecursively("/temp/hw2")
-	tf.gfile.MakeDirs("c:/temp/hw2")
+	if tf.gfile.Exists(tmp_path + "hw2"):
+		tf.gfile.DeleteRecursively(tmp_path + "hw2")
+	tf.gfile.MakeDirs(tmp_path + "hw2")
 	
 	for i in range(_EPOCH):
 		print("\nEpoch: {0}/{1}\n".format((i + 1), _EPOCH))
