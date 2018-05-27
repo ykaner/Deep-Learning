@@ -303,7 +303,7 @@ def test_and_save(epoch):
 		print(mes.format(acc, global_accuracy))
 		global_accuracy = acc
 		
-		saver.save(sess, os.path.join(save_path, save_file))
+		saver.save(sess, os.path.join(save_folder, save_file))
 	
 	elif global_accuracy == 0:
 		global_accuracy = acc
@@ -325,10 +325,13 @@ train_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/train', sess.gr
 test_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/test')
 
 saver = tf.train.Saver()
-save_path = './saves/'
-save_file = pretty_time() + '.ckpt'
+save_path = 'saves/'
+save_folder = os.path.join(save_path, pretty_time())
+save_file = 'save.ckpt'
 if not os.path.exists(save_path):
 	os.mkdir(save_path)
+if not os.path.exists(save_folder):
+	os.mkdir(save_folder)
 
 tf.global_variables_initializer().run(session=sess)
 
@@ -360,7 +363,7 @@ def main(args):
 		else:
 			print('restoring last check point')
 			read_file = read_file[-1]
-			saver.restore(sess, read_file)
+			saver.restore(sess, os.path.join(read_file, 'save.ckpt'))
 	
 	_EPOCH = args.epochs
 	
