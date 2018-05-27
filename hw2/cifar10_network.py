@@ -328,10 +328,6 @@ saver = tf.train.Saver()
 save_path = 'saves/'
 save_folder = os.path.join(save_path, pretty_time())
 save_file = 'save.ckpt'
-if not os.path.exists(save_path):
-	os.mkdir(save_path)
-if not os.path.exists(save_folder):
-	os.mkdir(save_folder)
 
 tf.global_variables_initializer().run(session=sess)
 
@@ -352,11 +348,17 @@ with open('total_parameters' + pretty_time() + '.txt', 'w') as f:
 
 def main(args):
 	global _EPOCH
+	global save_folder
 	# if tf.gfile.Exists(tmp_path + "tensorboard/hw2"):
 	# 	tf.gfile.DeleteRecursively(tmp_path + "tensorboard/hw2")
 	# tf.gfile.MakeDirs(tmp_path + "tensorbaord/hw2")
 	
-	if args.load:
+	if not args.load:
+		if not os.path.exists(save_path):
+			os.mkdir(save_path)
+		if not os.path.exists(save_folder):
+			os.mkdir(save_folder)
+	elif args.load:
 		read_file = os.listdir(save_path)
 		if len(read_file) is 0:
 			print('files to read not found. starting from the begining. ')
@@ -364,6 +366,8 @@ def main(args):
 			print('restoring last check point')
 			read_file = os.path.join(save_path, read_file[-1])
 			saver.restore(sess, os.path.join(read_file, 'save.ckpt'))
+			
+			save_folder = read_file
 	
 	_EPOCH = args.epochs
 	
