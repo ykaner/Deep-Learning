@@ -20,6 +20,7 @@ if os.name is "nt":
 else:
 	tmp_path = "/tmp/"
 
+
 def weight_variable(shape):
 	initial = tf.truncated_normal(shape, stddev=0.1)
 	return tf.Variable(initial)
@@ -38,14 +39,14 @@ def model():
 	_IMAGE_SIZE = 32
 	_IMAGE_CHANNELS = 3
 	_NUM_CLASSES = 10
-
+	
 	with tf.name_scope('input'):
 		x = tf.placeholder(tf.float32, shape=[None, _IMAGE_SIZE * _IMAGE_SIZE * _IMAGE_CHANNELS], name='Input')
 		y = tf.placeholder(tf.float32, shape=[None, _NUM_CLASSES], name='Output')
-
+	
 	with tf.name_scope('input_reshape'):
 		x_image = tf.reshape(x, [-1, _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS], name='images')
-
+	
 	tf.summary.image("intput", x_image, 10)
 	
 	with tf.name_scope('dropout'):
@@ -53,9 +54,9 @@ def model():
 	
 	tf.summary.scalar('dropout_keep_probability', keep_prob)
 	
-	conv1 = utils.tensorboard.conv2d_layer(x_image, [3, 3, 3, 32], layer_name="conv_1")
+	# conv1 = utils.tensorboard.conv2d_layer(x_image, [3, 3, 3, 32], layer_name="conv_1")
 	
-	conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 32, 64], layer_name="conv_1_1")
+	conv1_1 = utils.tensorboard.conv2d_layer(x_image, [3, 3, 32, 64], layer_name="conv_1_1")
 	
 	pool = max_pool_2x2(conv1_1, name="pool")
 	
@@ -65,23 +66,25 @@ def model():
 	
 	pool2 = max_pool_2x2(conv2, name="pool2")
 	
-	conv3 = utils.tensorboard.conv2d_layer(pool2, [2, 2, 128, 128], layer_name="conv_3")
+	conv3 = utils.tensorboard.conv2d_layer(pool2, [3, 3, 128, 128], layer_name="conv_3")
 	
-	pool3 = max_pool_2x2(conv3, name="pool3")
+	conv3_1 = utils.tensorboard.conv2d_layer(conv3, [3, 3, 128, 128], layer_name="conv_3_1")
+	
+	pool3 = max_pool_2x2(conv3_1, name="pool3")
 	
 	drop3 = tf.nn.dropout(pool3, keep_prob, name="drop3")
 	
 	flat = tf.reshape(drop3, [-1, 4 * 4 * 128], name="flat")
 	
 	with tf.variable_scope('fc_1'):
-		fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=1500, name="dense_layer"),
+		fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=512, name="dense_layer"),
 		                name="relu")  # , activation=tf.nn.relu)
 		drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
 	
 	tf.summary.histogram("drop4", drop4)
 	
 	with tf.variable_scope('fc_2'):
-		fc2 = tf.nn.relu(tf.layers.dense(inputs=drop4, units=1000, name="dense_layer"), name="fc")
+		fc2 = tf.nn.relu(tf.layers.dense(inputs=drop4, units=256, name="dense_layer"), name="fc")
 		drop5 = tf.nn.dropout(fc2, keep_prob, name="dropout")
 	
 	tf.summary.histogram("drop5", drop5)
@@ -100,7 +103,7 @@ def model():
 	
 	with tf.name_scope('train'):
 		optimizer = tf.train.AdamOptimizer(1e-4, beta1=0.9, beta2=0.999, epsilon=1e-08, name="AdamOptimizer").minimize(
-			loss, name="train_step")
+				loss, name="train_step")
 	
 	return x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, keep_prob
 
@@ -113,12 +116,11 @@ def get_data_set(name="train"):
 	
 	folder_name = "cifar_10"
 	
-	f = open(tmp_path + 'data_set/' + folder_name + '/batches.meta', 'rb')
 	f.close()
 	
 	if name is "train":
 		for i in range(5):
-			f = open(tmp_path + 'data_set/' + folder_name + '/data_batch_' + str(i + 1), 'rb')
+			f = open('c:/tmp/data_set/' + folder_name + '/data_batch_' + str(i + 1), 'rb')
 			datadict = pickle.load(f, encoding="latin1")
 			f.close()
 			
@@ -138,7 +140,7 @@ def get_data_set(name="train"):
 				y = np.concatenate((y, _Y), axis=0)
 	
 	elif name is "test":
-		f = open(tmp_path + 'data_set/' + folder_name + '/test_batch', 'rb')
+		f = open('c:/tmp/data_set/' + folder_name + '/test_batch', 'rb')
 		datadict = pickle.load(f, encoding="latin1")
 		f.close()
 		
@@ -170,7 +172,7 @@ def _print_download_progress(count, block_size, total_size):
 
 
 def maybe_download_and_extract():
-	main_directory = tmp_path + "data_set/"
+	main_directory = "c:/tmp/data_set/"
 	cifar_10_directory = main_directory + "cifar_10/"
 	if not os.path.exists(main_directory):
 		os.makedirs(main_directory)
@@ -265,12 +267,10 @@ _BATCH_SIZE = 128
 _EPOCH = 300
 
 merged = tf.summary.merge_all()
-train_writer = tf.summary.FileWriter(tmp_path + 'hw2/train', sess.graph)
-test_writer = tf.summary.FileWriter(tmp_path + 'hw2/test')
+train_writer = tf.summary.FileWriter('c:/tmp/hw2/train', sess.graph)
+test_writer = tf.summary.FileWriter('c:/tmp/hw2/test')
 
 tf.global_variables_initializer().run(session=sess)
-
-
 
 total_parameters = 0
 for variable in tf.trainable_variables():
@@ -280,13 +280,15 @@ for variable in tf.trainable_variables():
 		variable_parameters *= dim.value
 	total_parameters += variable_parameters
 print(total_parameters)
+with open('total_parameters' + str(time()) + '.txt', 'w') as f:
+	f.write(total_parameters)
 input()
 
 
 def main():
-	if tf.gfile.Exists(tmp_path + "hw2"):
-		tf.gfile.DeleteRecursively(tmp_path + "hw2")
-	tf.gfile.MakeDirs(tmp_path + "hw2")
+	if tf.gfile.Exists("c:/temp/hw2"):
+		tf.gfile.DeleteRecursively("/temp/hw2")
+	tf.gfile.MakeDirs("c:/temp/hw2")
 	
 	for i in range(_EPOCH):
 		print("\nEpoch: {0}/{1}\n".format((i + 1), _EPOCH))
