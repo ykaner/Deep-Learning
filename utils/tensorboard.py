@@ -44,7 +44,7 @@ def conv2d_layer(input_tensor, weights_shape, layer_name, strides=[1, 1, 1, 1], 
 			weights = weight_variable(weights_shape)
 			variable_summaries(weights)
 		with tf.name_scope('biases'):
-			biases = bias_variable([tf.shape(weights)[-1]])
+			biases = bias_variable([weights_shape[-1]])
 			variable_summaries(biases)
 		with tf.name_scope('conv_plus_b'):
 			preactivate = tf.nn.conv2d(input_tensor, weights, strides=strides, padding=padding,
