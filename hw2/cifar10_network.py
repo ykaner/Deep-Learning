@@ -69,15 +69,16 @@ def model():
 	
 	flat = tf.reshape(drop3, [-1, 4 * 4 * 128], name="flat")
 	
-	with tf.name_scope('fc_1'):
-		fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=1500, name="dense"), name="relu")  # , activation=tf.nn.relu)
+	with tf.variable_scope('fc_1'):
+		fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=1500, name="dense_layer"),
+		                name="relu")  # , activation=tf.nn.relu)
 		drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
 	
 	tf.summary.histogram("drop4", drop4)
 	
-	with tf.name_scope('fc_2'):
-		fc2 = tf.nn.relu(tf.layers.dense(inputs=drop4, units=1000, name="dense"), name="fc2")
-		drop5 = tf.nn.dropout(fc2, keep_prob2, name="dropout")
+	with tf.variable_scope('fc_2'):
+		fc2 = tf.nn.relu(tf.layers.dense(inputs=drop4, units=1000, name="dense_layer"), name="fc")
+		drop5 = tf.nn.dropout(fc2, keep_prob, name="dropout")
 	
 	tf.summary.histogram("drop5", drop5)
 	
@@ -91,13 +92,13 @@ def model():
 	
 	tf.summary.scalar("loss", loss)
 	tf.summary.scalar("accuracy", accuracy)
-	tf.summary.scalar("correct_predictions", correct_prediction)
+	# tf.summary.scalar("correct_predictions", correct_prediction)
 	
 	with tf.name_scope('train'):
 		optimizer = tf.train.AdamOptimizer(1e-4, beta1=0.9, beta2=0.999, epsilon=1e-08, name="AdamOptimizer").minimize(
 			loss, name="train_step")
 	
-	return x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, keep_prob2
+	return x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, keep_prob
 
 
 def get_data_set(name="train"):
@@ -263,7 +264,7 @@ merged = tf.summary.merge_all()
 train_writer = tf.summary.FileWriter('c:/tmp/hw2/train', sess.graph)
 test_writer = tf.summary.FileWriter('c:/tmp/hw2/test')
 
-tf.global_variables_initializer().run()
+tf.global_variables_initializer().run(session=sess)
 
 
 
