@@ -107,7 +107,7 @@ def model():
 	
 	conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [3, 3, 64, 64], layer_name="conv_3_3", act=conv3_2_act)
 	
-	gap = tf.layers.average_pooling2d(conv3_3, [8, 8], padding='VALID', name='gap')
+	gap = tf.layers.average_pooling2d(conv3_3, [8, 8], [8, 8], padding='VALID', name='gap')
 	
 	# pool3 = avg_pool_2x2(conv3_3, name="pool3")
 	
