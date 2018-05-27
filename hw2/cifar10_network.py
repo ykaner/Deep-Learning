@@ -70,7 +70,10 @@ def model():
 	
 	drop = tf.nn.dropout(pool, keep_prob, name="drop")
 	
-	shortcut2 = utils.tensorboard.conv2d_layer(drop, [1, 1, 16, 32], layer_name="shortcut2", act=lambda _: _)
+	def identical(val, name=''):
+		return val
+	
+	shortcut2 = utils.tensorboard.conv2d_layer(drop, [1, 1, 16, 32], layer_name="shortcut2", act=identical)
 	def conv2_act(out, name):
 		return tf.nn.relu(out + shortcut2, name)
 	conv2 = utils.tensorboard.conv2d_layer(drop, [3, 3, 16, 32], layer_name="conv_2", act=tf.nn.relu)
@@ -86,7 +89,7 @@ def model():
 	
 	pool2 = max_pool_2x2(conv2_3, name="pool2")
 	
-	shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", act=lambda _: x)
+	shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", act=identical)
 	def conv3_act(out, name):
 		return tf.nn.relu(out + shortcut3, name)
 	conv3 = utils.tensorboard.conv2d_layer(pool2, [3, 3, 32, 64], layer_name="conv_3", act=tf.nn.relu)
@@ -262,7 +265,7 @@ def test_and_save(epoch):
 	acc = correct.mean() * 100
 	correct_numbers = correct.sum()
 	
-	test_writer.add_run_metadata(run_metadata, "epoch{}".format(i))
+	test_writer.add_run_metadata(run_metadata, "epoch{}".format(i), global_step=epoch)
 	test_writer.add_summary(summary, epoch)
 	mes = "\nEpoch {} - accuracy: {:.2f}% ({}/{})"
 	print(mes.format((epoch + 1), acc, correct_numbers, len(test_x)))
@@ -287,11 +290,11 @@ global_accuracy = 0
 
 # PARAMS
 _BATCH_SIZE = 128
-_EPOCH = 300
+_EPOCH = 50
 
 merged = tf.summary.merge_all()
-train_writer = tf.summary.FileWriter(tmp_path + 'hw2/train', sess.graph)
-test_writer = tf.summary.FileWriter(tmp_path + 'hw2/test')
+train_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/train', sess.graph)
+test_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/test')
 
 tf.global_variables_initializer().run(session=sess)
 
@@ -304,14 +307,14 @@ for variable in tf.trainable_variables():
 	total_parameters += variable_parameters
 print(total_parameters)
 with open('total_parameters' + str(time()) + '.txt', 'w') as f:
-	f.write(total_parameters)
+	f.write(str(total_parameters))
 input()
 
 
 def main():
-	if tf.gfile.Exists(tmp_path + "hw2"):
-		tf.gfile.DeleteRecursively(tmp_path + "hw2")
-	tf.gfile.MakeDirs(tmp_path + "hw2")
+	# if tf.gfile.Exists(tmp_path + "tensorboard/hw2"):
+	# 	tf.gfile.DeleteRecursively(tmp_path + "tensorboard/hw2")
+	# tf.gfile.MakeDirs(tmp_path + "tensorbaord/hw2")
 	
 	for i in range(_EPOCH):
 		print("\nEpoch: {0}/{1}\n".format((i + 1), _EPOCH))
