@@ -116,6 +116,7 @@ def get_data_set(name="train"):
 	
 	folder_name = "cifar_10"
 	
+	f = open('c:/tmp/data_set/' + folder_name + '/batches.meta', 'rb')
 	f.close()
 	
 	if name is "train":
