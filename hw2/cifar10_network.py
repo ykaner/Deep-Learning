@@ -35,6 +35,10 @@ def max_pool_2x2(x, name):
 	return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
 
 
+def avg_pool_2x2(x, name):
+	return tf.nn.avg_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
+
+
 def model():
 	_IMAGE_SIZE = 32
 	_IMAGE_CHANNELS = 3
@@ -54,43 +58,61 @@ def model():
 	
 	tf.summary.scalar('dropout_keep_probability', keep_prob)
 	
-	# conv1 = utils.tensorboard.conv2d_layer(x_image, [3, 3, 3, 32], layer_name="conv_1")
+	conv0 = utils.tensorboard.conv2d_layer(x_image, [3, 3, 3, 16], layer_name="conv_0")
 	
-	conv1_1 = utils.tensorboard.conv2d_layer(x_image, [3, 3, 32, 64], layer_name="conv_1_1")
-	
+	def conv1_act(out, name):
+		return tf.nn.relu(out + conv0, name)
+	conv1 = utils.tensorboard.conv2d_layer(conv0, [3, 3, 16, 16], layer_name="conv_1", act=tf.nn.relu)
+
+	conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", act=conv1_act)
+
 	pool = max_pool_2x2(conv1_1, name="pool")
 	
 	drop = tf.nn.dropout(pool, keep_prob, name="drop")
 	
-	conv2 = utils.tensorboard.conv2d_layer(drop, [3, 3, 64, 128], layer_name="conv_2")
+	shortcut2 = utils.tensorboard.conv2d_layer(drop, [1, 1, 16, 32], layer_name="shortcut2", act=lambda _: _)
+	def conv2_act(out, name):
+		return tf.nn.relu(out + shortcut2, name)
+	conv2 = utils.tensorboard.conv2d_layer(drop, [3, 3, 16, 32], layer_name="conv_2", act=tf.nn.relu)
+
+	conv2_1 = utils.tensorboard.conv2d_layer(conv2, [3, 3, 32, 32], layer_name="conv_2_1", act=conv2_act)
 	
-	pool2 = max_pool_2x2(conv2, name="pool2")
+	shortcut2_2 = conv2_1
+	def conv2_2_act(out, name):
+		return tf.nn.relu(out + shortcut2_2, name)
+	conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", act=tf.nn.relu)
 	
-	conv3 = utils.tensorboard.conv2d_layer(pool2, [3, 3, 128, 128], layer_name="conv_3")
+	conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", act=conv2_2_act)
 	
-	conv3_1 = utils.tensorboard.conv2d_layer(conv3, [3, 3, 128, 128], layer_name="conv_3_1")
+	pool2 = max_pool_2x2(conv2_3, name="pool2")
 	
-	pool3 = max_pool_2x2(conv3_1, name="pool3")
+	shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", act=lambda _: x)
+	def conv3_act(out, name):
+		return tf.nn.relu(out + shortcut3, name)
+	conv3 = utils.tensorboard.conv2d_layer(pool2, [3, 3, 32, 64], layer_name="conv_3", act=tf.nn.relu)
 	
-	drop3 = tf.nn.dropout(pool3, keep_prob, name="drop3")
+	conv3_1 = utils.tensorboard.conv2d_layer(conv3, [3, 3, 64, 64], layer_name="conv_3_1", act=conv3_act)
 	
-	flat = tf.reshape(drop3, [-1, 4 * 4 * 128], name="flat")
+	shortcut3_2 = conv3_1
+	def conv3_2_act(out, name):
+		return tf.nn.relu(out + shortcut3_2, name)
+	conv3_2 = utils.tensorboard.conv2d_layer(conv3_1, [3, 3, 64, 64], layer_name="conv_3_2", act=tf.nn.relu)
+	
+	conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [3, 3, 64, 64], layer_name="conv_3_3", act=conv3_2_act)
+	
+	pool3 = avg_pool_2x2(conv3_3, name="pool3")
+	
+	flat = tf.reshape(pool3, [-1, 4 * 4 * 64], name="flat")
 	
 	with tf.variable_scope('fc_1'):
-		fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=512, name="dense_layer"),
+		fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=32, name="dense_layer"),
 		                name="relu")  # , activation=tf.nn.relu)
 		drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
 	
 	tf.summary.histogram("drop4", drop4)
 	
-	with tf.variable_scope('fc_2'):
-		fc2 = tf.nn.relu(tf.layers.dense(inputs=drop4, units=256, name="dense_layer"), name="fc")
-		drop5 = tf.nn.dropout(fc2, keep_prob, name="dropout")
-	
-	tf.summary.histogram("drop5", drop5)
-	
 	with tf.name_scope('total'):
-		softmax = tf.nn.softmax(tf.layers.dense(inputs=drop5, units=_NUM_CLASSES), name="softmax")
+		softmax = tf.nn.softmax(tf.layers.dense(inputs=drop4, units=_NUM_CLASSES), name="softmax")
 		y_pred_cls = tf.argmax(softmax, axis=1, name="y_pred_cls")
 		
 		loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=softmax, labels=y), name="loss")
