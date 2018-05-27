@@ -34,14 +34,14 @@ def model():
 	_IMAGE_SIZE = 32
 	_IMAGE_CHANNELS = 3
 	_NUM_CLASSES = 10
-	
+
 	with tf.name_scope('input'):
 		x = tf.placeholder(tf.float32, shape=[None, _IMAGE_SIZE * _IMAGE_SIZE * _IMAGE_CHANNELS], name='Input')
 		y = tf.placeholder(tf.float32, shape=[None, _NUM_CLASSES], name='Output')
-	
+
 	with tf.name_scope('input_reshape'):
 		x_image = tf.reshape(x, [-1, _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS], name='images')
-	
+
 	tf.summary.image("intput", x_image, 10)
 	
 	with tf.name_scope('dropout'):
@@ -189,8 +189,8 @@ def maybe_download_and_extract():
 
 
 def train(epoch):
-	batch_size = int(math.ceil(len(train_x) / _BATCH_SIZE))
-	for s in range(batch_size):
+	batch_count = int(math.ceil(len(train_x) / _BATCH_SIZE))
+	for s in range(batch_count):
 		batch_xs = train_x[s * _BATCH_SIZE: (s + 1) * _BATCH_SIZE]
 		batch_ys = train_y[s * _BATCH_SIZE: (s + 1) * _BATCH_SIZE]
 		
@@ -202,7 +202,7 @@ def train(epoch):
 		train_writer.add_summary(summery, s)
 		
 		if s % 10 == 0:
-			percentage = int(round((s / batch_size) * 100))
+			percentage = int(round((s / batch_count) * 100))
 			msg = "step: {} , batch_acc = {} , batch loss = {}"
 			print(msg.format(s, batch_acc, batch_loss))
 	
