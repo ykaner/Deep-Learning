@@ -13,7 +13,6 @@ from urllib.request import urlretrieve
 import numpy as np
 import tensorflow as tf
 
-import utils.increment as inc_dec
 import utils.tensorboard
 
 if os.name is "nt":
@@ -230,6 +229,7 @@ def maybe_download_and_extract():
 
 
 def train(epoch):
+	global tensorboard_train_counter
 	batch_count = int(math.ceil(len(train_x) / _BATCH_SIZE))
 	for s in range(batch_count):
 		batch_xs = train_x[s * _BATCH_SIZE: (s + 1) * _BATCH_SIZE]
@@ -240,7 +240,8 @@ def train(epoch):
 				[merged, optimizer, loss, accuracy],
 				feed_dict={x: batch_xs, y: batch_ys, keep_prob: 0.5})
 		duration = time() - start_time
-		train_writer.add_summary(summery, global_step=inc_dec.postIncrement("tensorboard_train_counter"))
+		train_writer.add_summary(summery, global_step=tensorboard_train_counter)
+		tensorboard_train_counter += 1
 		
 		if s % 10 == 0:
 			percentage = int(round((s / batch_count) * 100))
@@ -251,7 +252,7 @@ def train(epoch):
 
 
 def test_and_save(epoch):
-	global global_accuracy
+	global global_accuracy, tensorboard_test_counter
 	run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
 	
 	i = 0
@@ -274,7 +275,8 @@ def test_and_save(epoch):
 	acc = correct.mean() * 100
 	correct_numbers = correct.sum()
 	
-	test_writer.add_summary(summary, global_step=inc_dec.postIncrement("tensorboard_test_counter"))
+	test_writer.add_summary(summary, global_step=tensorboard_test_counter)
+	tensorboard_test_counter += 1
 	mes = "\nEpoch {} - accuracy: {:.2f}% ({}/{})"
 	print(mes.format((epoch + 1), acc, correct_numbers, len(test_x)))
 	
