@@ -362,7 +362,7 @@ def main(args):
 			print('files to read not found. starting from the begining. ')
 		else:
 			print('restoring last check point')
-			read_file = read_file[-1]
+			read_file = os.path.join(save_path, read_file[-1])
 			saver.restore(sess, os.path.join(read_file, 'save.ckpt'))
 	
 	_EPOCH = args.epochs
