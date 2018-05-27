@@ -15,6 +15,10 @@ import tensorflow as tf
 
 import utils.tensorboard
 
+if os.name is "nt":
+	tmp_path = "C:/tmp/"
+else:
+	tmp_path = "/tmp/"
 
 def weight_variable(shape):
 	initial = tf.truncated_normal(shape, stddev=0.1)
