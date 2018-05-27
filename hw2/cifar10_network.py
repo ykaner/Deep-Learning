@@ -24,6 +24,8 @@ else:
 tensorboard_train_counter = 0
 tensorboard_test_counter = 0
 
+sess = tf.Session()
+
 
 def weight_variable(shape):
 	initial = tf.truncated_normal(shape, stddev=0.1)
@@ -287,7 +289,6 @@ def test_and_save(epoch):
 	print("###########################################################################################################")
 
 
-sess = tf.Session()
 
 train_x, train_y = get_data_set("train")
 test_x, test_y = get_data_set("test")
