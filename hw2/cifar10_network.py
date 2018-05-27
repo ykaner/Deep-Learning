@@ -64,11 +64,11 @@ def model():
 		return tf.nn.relu(out + conv0, name)
 	conv1 = utils.tensorboard.conv2d_layer(conv0, [3, 3, 16, 16], layer_name="conv_1", act=tf.nn.relu)
 
-	conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", act=conv1_act)
+	conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", strides=[1, 2, 2, 1], act=conv1_act)
 
-	pool = max_pool_2x2(conv1_1, name="pool")
+	# pool = max_pool_2x2(conv1_1, name="pool")
 	
-	drop = tf.nn.dropout(pool, keep_prob, name="drop")
+	drop = tf.nn.dropout(conv1_1, keep_prob, name="drop")
 	
 	def identical(val, name=''):
 		return val
@@ -85,9 +85,9 @@ def model():
 		return tf.nn.relu(out + shortcut2_2, name)
 	conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", act=tf.nn.relu)
 	
-	conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", act=conv2_2_act)
+	conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", strides=[1, 2, 2, 1], act=conv2_2_act)
 	
-	pool2 = max_pool_2x2(conv2_3, name="pool2")
+	pool2 = conv2_3  # max_pool_2x2(conv2_3, name="pool2")
 	
 	shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", act=identical)
 	def conv3_act(out, name):
@@ -103,19 +103,21 @@ def model():
 	
 	conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [3, 3, 64, 64], layer_name="conv_3_3", act=conv3_2_act)
 	
-	pool3 = avg_pool_2x2(conv3_3, name="pool3")
+	gap = tf.layers.average_pooling2d(conv3_3, [8, 8], padding='VALID', name='gap')
 	
-	flat = tf.reshape(pool3, [-1, 4 * 4 * 64], name="flat")
+	# pool3 = avg_pool_2x2(conv3_3, name="pool3")
 	
-	with tf.variable_scope('fc_1'):
-		fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=32, name="dense_layer"),
-		                name="relu")  # , activation=tf.nn.relu)
-		drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
+	flat = tf.reshape(gap, [-1, 64], name="flat")
 	
-	tf.summary.histogram("drop4", drop4)
+	# with tf.variable_scope('fc_1'):
+	# 	fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=32, name="dense_layer"),
+	# 	                name="relu")  # , activation=tf.nn.relu)
+	# 	drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
+	#
+	# tf.summary.histogram("drop4", drop4)
 	
 	with tf.name_scope('total'):
-		softmax = tf.nn.softmax(tf.layers.dense(inputs=drop4, units=_NUM_CLASSES), name="softmax")
+		softmax = tf.nn.softmax(tf.layers.dense(inputs=flat, units=_NUM_CLASSES), name="softmax")
 		y_pred_cls = tf.argmax(softmax, axis=1, name="y_pred_cls")
 		
 		loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=softmax, labels=y), name="loss")
