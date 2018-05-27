@@ -13,12 +13,16 @@ from urllib.request import urlretrieve
 import numpy as np
 import tensorflow as tf
 
+import utils.increment as inc_dec
 import utils.tensorboard
 
 if os.name is "nt":
 	tmp_path = "C:/tmp/"
 else:
 	tmp_path = "/tmp/"
+
+tensorboard_train_counter = 0
+tensorboard_test_counter = 0
 
 
 def weight_variable(shape):
@@ -234,7 +238,7 @@ def train(epoch):
 				[merged, optimizer, loss, accuracy],
 				feed_dict={x: batch_xs, y: batch_ys, keep_prob2: 0.5})
 		duration = time() - start_time
-		train_writer.add_summary(summery, s)
+		train_writer.add_summary(summery, global_step=inc_dec.postIncrement("tensorboard_train_counter"))
 		
 		if s % 10 == 0:
 			percentage = int(round((s / batch_count) * 100))
@@ -247,28 +251,28 @@ def train(epoch):
 def test_and_save(epoch):
 	global global_accuracy
 	run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-	run_metadata = tf.RunMetadata()
 	
 	i = 0
 	predicted_class = np.zeros(shape=len(test_x), dtype=np.int)
 	while i < len(test_x):
+		# run_metadata = tf.RunMetadata()
 		j = min(i + _BATCH_SIZE, len(test_x))
 		batch_xs = test_x[i:j, :]
 		batch_ys = test_y[i:j, :]
 		summary, predicted_class[i:j] = sess.run(
 				[merged, y_pred_cls],
 				feed_dict={x: batch_xs, y: batch_ys, keep_prob2: 1},
-				options=run_options,
-				run_metadata=run_metadata
+				options=run_options  # ,
+				# run_metadata=run_metadata
 		)
+		# test_writer.add_run_metadata(run_metadata, "epoch{}:step{}".format(epoch, i))
 		i = j
 	
 	correct = (np.argmax(test_y, axis=1) == predicted_class)
 	acc = correct.mean() * 100
 	correct_numbers = correct.sum()
 	
-	test_writer.add_run_metadata(run_metadata, "epoch{}".format(i), global_step=epoch)
-	test_writer.add_summary(summary, epoch)
+	test_writer.add_summary(summary, global_step=inc_dec.postIncrement("tensorboard_test_counter"))
 	mes = "\nEpoch {} - accuracy: {:.2f}% ({}/{})"
 	print(mes.format((epoch + 1), acc, correct_numbers, len(test_x)))
 	
