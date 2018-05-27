@@ -68,7 +68,7 @@ def model():
 		return tf.nn.relu(out + conv0, name)
 	conv1 = utils.tensorboard.conv2d_layer(conv0, [3, 3, 16, 16], layer_name="conv_1", act=tf.nn.relu)
 
-	conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", strides=[1, 2, 2, 1], act=conv1_act)
+	conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", act=conv1_act)
 
 	# pool = max_pool_2x2(conv1_1, name="pool")
 	
@@ -80,7 +80,7 @@ def model():
 	shortcut2 = utils.tensorboard.conv2d_layer(drop, [1, 1, 16, 32], layer_name="shortcut2", act=identical)
 	def conv2_act(out, name):
 		return tf.nn.relu(out + shortcut2, name)
-	conv2 = utils.tensorboard.conv2d_layer(drop, [3, 3, 16, 32], layer_name="conv_2", act=tf.nn.relu)
+	conv2 = utils.tensorboard.conv2d_layer(drop, [3, 3, 16, 32], layer_name="conv_2", strides=[1, 2, 2, 1], act=tf.nn.relu)
 
 	conv2_1 = utils.tensorboard.conv2d_layer(conv2, [3, 3, 32, 32], layer_name="conv_2_1", act=conv2_act)
 	
@@ -89,14 +89,14 @@ def model():
 		return tf.nn.relu(out + shortcut2_2, name)
 	conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", act=tf.nn.relu)
 	
-	conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", strides=[1, 2, 2, 1], act=conv2_2_act)
+	conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", act=conv2_2_act)
 	
 	pool2 = conv2_3  # max_pool_2x2(conv2_3, name="pool2")
 	
 	shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", act=identical)
 	def conv3_act(out, name):
 		return tf.nn.relu(out + shortcut3, name)
-	conv3 = utils.tensorboard.conv2d_layer(pool2, [3, 3, 32, 64], layer_name="conv_3", act=tf.nn.relu)
+	conv3 = utils.tensorboard.conv2d_layer(pool2, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1], act=tf.nn.relu)
 	
 	conv3_1 = utils.tensorboard.conv2d_layer(conv3, [3, 3, 64, 64], layer_name="conv_3_1", act=conv3_act)
 	
@@ -133,7 +133,7 @@ def model():
 	# tf.summary.scalar("correct_predictions", correct_prediction)
 	
 	with tf.name_scope('train'):
-		optimizer = tf.train.AdamOptimizer(1e-4, beta1=0.9, beta2=0.999, epsilon=1e-08, name="AdamOptimizer").minimize(
+		optimizer = tf.train.AdamOptimizer(1e-3, beta1=0.9, beta2=0.999, epsilon=1e-08, name="AdamOptimizer").minimize(
 				loss, name="train_step")
 	
 	return x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, keep_prob
@@ -324,7 +324,9 @@ def main():
 	
 	for i in range(_EPOCH):
 		print("\nEpoch: {0}/{1}\n".format((i + 1), _EPOCH))
+		start_time = time()
 		train(i)
+		print('epoch %d took: %d time' % (i, time() - start_time))
 
 
 if __name__ == "__main__":
