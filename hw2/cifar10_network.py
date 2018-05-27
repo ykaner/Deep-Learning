@@ -1,6 +1,7 @@
 #! python3
 from __future__ import absolute_import
 
+import datetime
 import math
 import os
 import pickle
@@ -25,6 +26,10 @@ tensorboard_train_counter = 0
 tensorboard_test_counter = 0
 
 sess = tf.Session()
+
+
+def pretty_time():
+	return str(datetime.datetime.now().replace(microsecond=0)).replace(':', '-')
 
 
 def weight_variable(shape):
@@ -68,10 +73,11 @@ def model():
 	
 	def conv1_act(out, name):
 		return tf.nn.relu(out + conv0, name)
+	
 	conv1 = utils.tensorboard.conv2d_layer(conv0, [3, 3, 16, 16], layer_name="conv_1", act=tf.nn.relu)
-
+	
 	conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", act=conv1_act)
-
+	
 	# pool = max_pool_2x2(conv1_1, name="pool")
 	
 	drop = tf.nn.dropout(conv1_1, keep_prob, name="drop")
@@ -79,32 +85,44 @@ def model():
 	def identical(val, name=''):
 		return val
 	
-	shortcut2 = utils.tensorboard.conv2d_layer(drop, [1, 1, 16, 32], layer_name="shortcut2", strides=[1, 2, 2, 1], act=identical)
+	shortcut2 = utils.tensorboard.conv2d_layer(drop, [1, 1, 16, 32], layer_name="shortcut2", strides=[1, 2, 2, 1],
+	                                           act=identical)
+	
 	def conv2_act(out, name):
 		return tf.nn.relu(out + shortcut2, name)
-	conv2 = utils.tensorboard.conv2d_layer(drop, [3, 3, 16, 32], layer_name="conv_2", strides=[1, 2, 2, 1], act=tf.nn.relu)
-
+	
+	conv2 = utils.tensorboard.conv2d_layer(drop, [3, 3, 16, 32], layer_name="conv_2", strides=[1, 2, 2, 1],
+	                                       act=tf.nn.relu)
+	
 	conv2_1 = utils.tensorboard.conv2d_layer(conv2, [3, 3, 32, 32], layer_name="conv_2_1", act=conv2_act)
 	
 	shortcut2_2 = conv2_1
+	
 	def conv2_2_act(out, name):
 		return tf.nn.relu(out + shortcut2_2, name)
+	
 	conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", act=tf.nn.relu)
 	
 	conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", act=conv2_2_act)
 	
 	pool2 = conv2_3  # max_pool_2x2(conv2_3, name="pool2")
 	
-	shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", strides=[1, 2, 2, 1], act=identical)
+	shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", strides=[1, 2, 2, 1],
+	                                           act=identical)
+	
 	def conv3_act(out, name):
 		return tf.nn.relu(out + shortcut3, name)
-	conv3 = utils.tensorboard.conv2d_layer(pool2, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1], act=tf.nn.relu)
+	
+	conv3 = utils.tensorboard.conv2d_layer(pool2, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1],
+	                                       act=tf.nn.relu)
 	
 	conv3_1 = utils.tensorboard.conv2d_layer(conv3, [3, 3, 64, 64], layer_name="conv_3_1", act=conv3_act)
 	
 	shortcut3_2 = conv3_1
+	
 	def conv3_2_act(out, name):
 		return tf.nn.relu(out + shortcut3_2, name)
+	
 	conv3_2 = utils.tensorboard.conv2d_layer(conv3_1, [3, 3, 64, 64], layer_name="conv_3_2", act=tf.nn.relu)
 	
 	conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [3, 3, 64, 64], layer_name="conv_3_3", act=conv3_2_act)
@@ -208,7 +226,7 @@ def _print_download_progress(count, block_size, total_size):
 def maybe_download_and_extract():
 	main_directory = tmp_path + "data_set/"
 	cifar_10_directory = main_directory + "cifar_10/"
-	if not os.path.exists(main_directory):
+	if not os.path.exists(main_directory) or not os.path.exists(cifar_10_directory):
 		os.makedirs(main_directory)
 		
 		url = "http://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
@@ -282,12 +300,13 @@ def test_and_save(epoch):
 		mes = "This epoch receive better accuracy: {:.2f} > {:.2f}. Saving session..."
 		print(mes.format(acc, global_accuracy))
 		global_accuracy = acc
+		
+		saver.save(sess, os.path.join(save_path, save_file))
 	
 	elif global_accuracy == 0:
 		global_accuracy = acc
 	
 	print("###########################################################################################################")
-
 
 
 train_x, train_y = get_data_set("train")
@@ -303,6 +322,12 @@ merged = tf.summary.merge_all()
 train_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/train', sess.graph)
 test_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/test')
 
+saver = tf.train.Saver()
+save_path = './saves/'
+save_file = pretty_time() + '.ckpt'
+if not os.path.exists(save_path):
+	os.mkdir(save_path)
+
 tf.global_variables_initializer().run(session=sess)
 
 total_parameters = 0
@@ -313,15 +338,29 @@ for variable in tf.trainable_variables():
 		variable_parameters *= dim.value
 	total_parameters += variable_parameters
 print(total_parameters)
-with open('total_parameters' + str(time()) + '.txt', 'w') as f:
+with open('total_parameters' + pretty_time() + '.txt', 'w') as f:
 	f.write(str(total_parameters))
+
+
 # input()
 
 
-def main():
+def main(args):
+	global _EPOCH
 	# if tf.gfile.Exists(tmp_path + "tensorboard/hw2"):
 	# 	tf.gfile.DeleteRecursively(tmp_path + "tensorboard/hw2")
 	# tf.gfile.MakeDirs(tmp_path + "tensorbaord/hw2")
+	
+	if args.load:
+		read_file = os.listdir(save_path)
+		if len(read_file) is 0:
+			print('files to read not found. starting from the begining. ')
+		else:
+			print('restoring last check point')
+			read_file = read_file[-1]
+			saver.restore(sess, read_file)
+	
+	_EPOCH = args.epochs
 	
 	for i in range(_EPOCH):
 		print("\nEpoch: {0}/{1}\n".format((i + 1), _EPOCH))
