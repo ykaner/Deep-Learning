@@ -236,14 +236,14 @@ def train(epoch):
 		start_time = time()
 		summery, _, batch_loss, batch_acc = sess.run(
 				[merged, optimizer, loss, accuracy],
-				feed_dict={x: batch_xs, y: batch_ys, keep_prob2: 0.5})
+				feed_dict={x: batch_xs, y: batch_ys, keep_prob: 0.5})
 		duration = time() - start_time
 		train_writer.add_summary(summery, global_step=inc_dec.postIncrement("tensorboard_train_counter"))
 		
 		if s % 10 == 0:
 			percentage = int(round((s / batch_count) * 100))
-			msg = "step: {} , batch_acc = {} , batch loss = {}"
-			print(msg.format(s, batch_acc, batch_loss))
+			msg = "Epoch {}: step: {} , batch_acc = {} , batch loss = {}"
+			print(msg.format(epoch, s, batch_acc, batch_loss))
 	
 	test_and_save(epoch)
 
@@ -261,7 +261,7 @@ def test_and_save(epoch):
 		batch_ys = test_y[i:j, :]
 		summary, predicted_class[i:j] = sess.run(
 				[merged, y_pred_cls],
-				feed_dict={x: batch_xs, y: batch_ys, keep_prob2: 1},
+				feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1},
 				options=run_options  # ,
 				# run_metadata=run_metadata
 		)
@@ -291,7 +291,7 @@ sess = tf.Session()
 
 train_x, train_y = get_data_set("train")
 test_x, test_y = get_data_set("test")
-x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, keep_prob2 = model()
+x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, keep_prob = model()
 global_accuracy = 0
 
 # PARAMS
@@ -314,7 +314,7 @@ for variable in tf.trainable_variables():
 print(total_parameters)
 with open('total_parameters' + str(time()) + '.txt', 'w') as f:
 	f.write(str(total_parameters))
-input()
+# input()
 
 
 def main():
