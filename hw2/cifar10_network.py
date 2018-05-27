@@ -77,7 +77,7 @@ def model():
 	def identical(val, name=''):
 		return val
 	
-	shortcut2 = utils.tensorboard.conv2d_layer(drop, [1, 1, 16, 32], layer_name="shortcut2", act=identical)
+	shortcut2 = utils.tensorboard.conv2d_layer(drop, [1, 1, 16, 32], layer_name="shortcut2", strides=[1, 2, 2, 1], act=identical)
 	def conv2_act(out, name):
 		return tf.nn.relu(out + shortcut2, name)
 	conv2 = utils.tensorboard.conv2d_layer(drop, [3, 3, 16, 32], layer_name="conv_2", strides=[1, 2, 2, 1], act=tf.nn.relu)
@@ -93,7 +93,7 @@ def model():
 	
 	pool2 = conv2_3  # max_pool_2x2(conv2_3, name="pool2")
 	
-	shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", act=identical)
+	shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", strides=[1, 2, 2, 1], act=identical)
 	def conv3_act(out, name):
 		return tf.nn.relu(out + shortcut3, name)
 	conv3 = utils.tensorboard.conv2d_layer(pool2, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1], act=tf.nn.relu)
