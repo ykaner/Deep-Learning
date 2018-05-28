@@ -227,6 +227,9 @@ def model():
 	with tf.device('/cpu:0'):
 		tower_grads = []
 		reuse_vars = False
+		
+		correct_predictions = []
+		accuracies = []
 		with tf.name_scope('input'):
 			X = tf.placeholder(tf.float32, shape=[None, _IMAGE_SIZE * _IMAGE_SIZE * _IMAGE_CHANNELS], name='Input')
 			Y = tf.placeholder(tf.float32, shape=[None, _NUM_CLASSES], name='Output')
@@ -254,14 +257,14 @@ def model():
 						
 						loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=_y),
 						                      name="loss")
-						if i == 0:
-							correct_prediction = tf.equal(y_pred_cls, tf.argmax(_y, axis=1), name="correct_predictions")
-							accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="accuracy")
+						correct_prediction = tf.equal(y_pred_cls, tf.argmax(_y, axis=1), name="correct_predictions")
+						correct_predictions += list(correct_prediction)
+						accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="accuracy")
+						accuracies += list(accuracy)
 					
-					if i == 0:
-						with tf.device('/cpu:0'):
-							tf.summary.scalar("loss", loss)
-							tf.summary.scalar("accuracy", accuracy)
+					with tf.device('/cpu:0'):
+						tf.summary.scalar("loss", loss)
+						tf.summary.scalar("accuracy", accuracy)
 						# tf.summary.scalar("correct_predictions", correct_prediction)
 					
 					with tf.name_scope('train'):
@@ -275,7 +278,7 @@ def model():
 		avg_grads = average_gradients(tower_grads)
 		train_op = optimizer.apply_gradients(avg_grads)
 	
-	return X, Y, loss, train_op, correct_prediction, accuracy, y_pred_cls, keep_prob
+	return X, Y, loss, train_op, correct_predictions, accuracies, y_pred_cls, keep_prob
 
 
 def get_data_set(name="train"):
