@@ -59,17 +59,12 @@ def average_gradients(tower_grads):
 		#   ((grad0_gpu0, var0_gpu0), ... , (grad0_gpuN, var0_gpuN))
 		grads = []
 		
-		is_p = 10
 		grad_and_vars = [(0, _) if g is None else (g, _) for g, _ in grad_and_vars]
 		for g, _ in grad_and_vars:
-			if is_p or g:
-				print(g)
-				is_p -= 1
 			# Add 0 dimension to the gradients to represent the tower.
 			expanded_g = tf.expand_dims(g, 0)
 			# Append on a 'tower' dimension which we will average over below.
 			grads.append(expanded_g)
-		print(grads)
 		# Average over the 'tower' dimension.
 		grad = tf.concat(grads, 0)
 		grad = tf.reduce_mean(grad, 0)
@@ -182,30 +177,31 @@ def model():
 		tf.summary.scalar('dropout_keep_probability', keep_prob)
 		
 		for i in range(_NUM_GPUS):
-			_x_image = X_image[i * _BATCH_SIZE: (i + 1) * _BATCH_SIZE]
-			_y = Y[i * _BATCH_SIZE: (i + 1) * _BATCH_SIZE]
-			
-			logits = ResNet(_x_image, keep_prob, reuse_vars)
-			
-			with tf.name_scope('total'):
-				y_pred_cls = tf.argmax(logits, axis=1, name="y_pred_cls")
+			with tf.device('/gpu:' + str(i)):
+				_x_image = X_image[i * _BATCH_SIZE: (i + 1) * _BATCH_SIZE]
+				_y = Y[i * _BATCH_SIZE: (i + 1) * _BATCH_SIZE]
 				
-				loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=_y), name="loss")
+				logits = ResNet(_x_image, keep_prob, reuse_vars)
+				
+				with tf.name_scope('total'):
+					y_pred_cls = tf.argmax(logits, axis=1, name="y_pred_cls")
+					
+					loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=_y), name="loss")
+					if i == 0:
+						correct_prediction = tf.equal(y_pred_cls, tf.argmax(_y, axis=1), name="correct_predictions")
+						accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="accuracy")
+				
 				if i == 0:
-					correct_prediction = tf.equal(y_pred_cls, tf.argmax(_y, axis=1), name="correct_predictions")
-					accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="accuracy")
-			
-			if i == 0:
-				tf.summary.scalar("loss", loss)
-				tf.summary.scalar("accuracy", accuracy)
-			# tf.summary.scalar("correct_predictions", correct_prediction)
-			
-			with tf.name_scope('train'):
-				optimizer = tf.train.AdamOptimizer(1e-3, beta1=0.9, beta2=0.999, epsilon=1e-08, name="AdamOptimizer")
-				grads = optimizer.compute_gradients(loss)
-				tower_grads.append(grads)
-			
-			reuse_vars = True
+					tf.summary.scalar("loss", loss)
+					tf.summary.scalar("accuracy", accuracy)
+				# tf.summary.scalar("correct_predictions", correct_prediction)
+				
+				with tf.name_scope('train'):
+					optimizer = tf.train.AdamOptimizer(1e-3, beta1=0.9, beta2=0.999, epsilon=1e-08, name="AdamOptimizer")
+					grads = optimizer.compute_gradients(loss)
+					tower_grads.append(grads)
+				
+				reuse_vars = True
 		
 		avg_grads = average_gradients(tower_grads)
 		train_op = optimizer.apply_gradients(avg_grads)
