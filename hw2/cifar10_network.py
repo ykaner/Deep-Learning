@@ -12,6 +12,8 @@ import zipfile
 from time import time
 from urllib.request import urlretrieve
 
+import random
+
 import numpy as np
 import tensorflow as tf
 
@@ -413,6 +415,7 @@ test_x, test_y = get_data_set("test")
 x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, keep_prob = model()
 global_accuracy = 0
 
+
 merged = tf.summary.merge_all()
 train_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/train', sess.graph)
 test_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/test')
@@ -442,6 +445,8 @@ def get_total_parameters():
 	print(total_parameters)
 	with open('total_parameters' + pretty_time() + '.txt', 'w') as f:
 		f.write(str(total_parameters))
+
+
 
 
 # input()
