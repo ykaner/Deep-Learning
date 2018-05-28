@@ -2,16 +2,17 @@ import tensorflow as tf
 
 
 def variable_summaries(var):
-	"""Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
-	with tf.name_scope('summaries'):
-		mean = tf.reduce_mean(var)
-		tf.summary.scalar('mean', mean)
-		with tf.name_scope('stddev'):
-			stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
-		tf.summary.scalar('stddev', stddev)
-		tf.summary.scalar('max', tf.reduce_max(var))
-		tf.summary.scalar('min', tf.reduce_min(var))
-		tf.summary.histogram('histogram', var)
+	with tf.device('/cpu:0'):
+		"""Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
+		with tf.name_scope('summaries'):
+			mean = tf.reduce_mean(var)
+			tf.summary.scalar('mean', mean)
+			with tf.name_scope('stddev'):
+				stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
+			tf.summary.scalar('stddev', stddev)
+			tf.summary.scalar('max', tf.reduce_max(var))
+			tf.summary.scalar('min', tf.reduce_min(var))
+			tf.summary.histogram('histogram', var)
 
 
 def conv2d_layer(input_tensor, weights_shape, layer_name, strides=[1, 1, 1, 1], padding="SAME", act=tf.nn.relu):
@@ -26,9 +27,11 @@ def conv2d_layer(input_tensor, weights_shape, layer_name, strides=[1, 1, 1, 1], 
 		with tf.name_scope('conv_plus_b'):
 			preactivate = tf.nn.conv2d(input_tensor, weights, strides=strides, padding=padding,
 			                           name="pre_activations") + biases
-			tf.summary.histogram('pre_activations', preactivate)
+			with tf.device('/cpu:0'):
+				tf.summary.histogram('pre_activations', preactivate)
 		activations = act(preactivate, name='activation')
-		tf.summary.histogram('activations', activations)
+		with tf.device('/cpu:0'):
+			tf.summary.histogram('activations', activations)
 		return activations
 
 
