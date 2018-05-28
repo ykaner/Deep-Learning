@@ -412,6 +412,7 @@ def main(args=None):
 	# 	tf.gfile.DeleteRecursively(tmp_path + "tensorboard/hw2")
 	# tf.gfile.MakeDirs(tmp_path + "tensorbaord/hw2")
 	
+	# Setting the args
 	if args is not None:
 		if args.load:
 			saves = glob.glob(save_path + "*")
@@ -429,8 +430,6 @@ def main(args=None):
 	else:
 		_EPOCH = 5
 		_NUM_GPUS = 4
-	# save_folder = # TODO Default save folder
-	# save_path = # TODO Default save path
 		
 	start = time()
 	for i in range(_EPOCH):
