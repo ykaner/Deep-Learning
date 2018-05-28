@@ -23,6 +23,18 @@ if os.name is "nt":
 else:
 	tmp_path = "/tmp/"
 
+FLAGS = tf.flags.FLAGS
+
+tf.flags.DEFINE_string('train_dir', '/tmp/cifar10_train',
+                       """Directory where to write event logs """
+                       """and checkpoint.""")
+tf.flags.DEFINE_integer('max_steps', 10000,
+                        """Number of batches to run.""")
+tf.flags.DEFINE_integer('num_gpus', 1,
+                        """How many GPUs to use.""")
+tf.flags.DEFINE_boolean('log_device_placement', False,
+                        """Whether to log device placement.""")
+
 tensorboard_train_counter = 0
 tensorboard_test_counter = 0
 
@@ -106,10 +118,14 @@ def average_gradients(tower_grads):
 		cur_shape = []
 		for g, _ in grad_and_vars:
 			# Add 0 dimension to the gradients to represent the tower.
+			# TODO: remove this debug info
+			# ================== Start of debug info ==================
 			print(g)
 			if not cur_shape and g is not None:
 				cur_shape = g.shape
 			g = tf.zeros(cur_shape) if g is None else g
+			# ================== End of debug info ==================
+			
 			expanded_g = tf.expand_dims(g, 0)
 			# Append on a 'tower' dimension which we will average over below.
 			grads.append(expanded_g)
@@ -368,28 +384,34 @@ def train(epoch):
 	:param epoch: The current epoch
 	:type epoch: int
 	"""
-	
-	global tensorboard_train_counter
-	total_batch = _BATCH_SIZE * _NUM_GPUS
-	batch_count = int(math.ceil(len(train_x) / total_batch))
-	for s in range(batch_count):
-		batch_xs = train_x[s * total_batch: (s + 1) * total_batch]
-		batch_ys = train_y[s * total_batch: (s + 1) * total_batch]
+	with tf.Graph().as_default(), tf.device('/cpu:0'):
+		# Create a variable to count the number of train() calls. This equals the
+		# number of batches processed * FLAGS.num_gpus.
+		global_step = tf.get_variable(
+				'global_step', [],
+				initializer=tf.constant_initializer(0), trainable=False)
 		
-		start_time = time()
-		summery, _, batch_loss, batch_acc = sess.run(
-				[merged, optimizer, loss, accuracy],
-				feed_dict={x: batch_xs, y: batch_ys, keep_prob: 0.5})
-		duration = time() - start_time
-		train_writer.add_summary(summery, global_step=tensorboard_train_counter)
-		tensorboard_train_counter += 1
+		global tensorboard_train_counter
+		total_batch = _BATCH_SIZE * _NUM_GPUS
+		batch_count = int(math.ceil(len(train_x) / total_batch))
+		for s in range(batch_count):
+			batch_xs = train_x[s * total_batch: (s + 1) * total_batch]
+			batch_ys = train_y[s * total_batch: (s + 1) * total_batch]
+			
+			start_time = time()
+			summery, _, batch_loss, batch_acc = sess.run(
+					[merged, optimizer, loss, accuracy],
+					feed_dict={x: batch_xs, y: batch_ys, keep_prob: 0.5})
+			duration = time() - start_time
+			train_writer.add_summary(summery, global_step=tensorboard_train_counter)
+			tensorboard_train_counter += 1
+			
+			if s % 10 == 0:
+				percentage = int(round((s / batch_count) * 100))
+				msg = "Epoch {}: step: {} , batch_acc = {} , batch loss = {}"
+				print(msg.format(epoch, s, batch_acc, batch_loss))
 		
-		if s % 10 == 0:
-			percentage = int(round((s / batch_count) * 100))
-			msg = "Epoch {}: step: {} , batch_acc = {} , batch loss = {}"
-			print(msg.format(epoch, s, batch_acc, batch_loss))
-	
-	test_and_save(epoch)
+		test_and_save(epoch)
 
 
 def test_and_save(epoch):
