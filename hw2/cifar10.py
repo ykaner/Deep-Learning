@@ -254,16 +254,15 @@ def inference(images):
 
 
 def loss(logits, labels):
-	"""Add L2Loss to all the trainable variables.
- 
+	"""
+	Add L2Loss to all the trainable variables.
+	
 	Add summary for "Loss" and "Loss/avg".
-	Args:
-	  logits: Logits from inference().
-	  labels: Labels from distorted_inputs or inputs(). 1-D tensor
-			  of shape [batch_size]
-  
-	Returns:
-	  Loss tensor of type float.
+	
+	:param logits: Logits from inference().
+	:param labels: Labels from distorted_inputs or inputs(). 1-D tensor of shape [batch_size]
+	
+	:returns: Loss tensor of type float.
 	"""
 	# Calculate the average cross entropy loss across the batch.
 	labels = tf.cast(labels, tf.int64)
@@ -278,16 +277,16 @@ def loss(logits, labels):
 
 
 def _add_loss_summaries(total_loss):
-	"""Add summaries for losses in CIFAR-10 model.
- 
+	"""
+	Add summaries for losses in CIFAR-10 model.
+	
 	Generates moving average for all losses and associated summaries for
 	visualizing the performance of the network.
- 
-	Args:
-	  total_loss: Total loss from loss().
-	Returns:
-	  loss_averages_op: op for generating moving averages of losses.
+	
+	:param total_loss: Total loss from loss().
+	:returns: loss_averages_op: op for generating moving averages of losses.
 	"""
+	
 	# Compute the moving average of all individual losses and the total loss.
 	loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
 	losses = tf.get_collection('losses')
@@ -305,29 +304,28 @@ def _add_loss_summaries(total_loss):
 
 
 def train(total_loss, global_step):
-	"""Train CIFAR-10 model.
- 
+	"""
+	Train CIFAR-10 model.
+	
 	Create an optimizer and apply to all trainable variables. Add moving
 	average for all trainable variables.
- 
-	Args:
-	  total_loss: Total loss from loss().
-	  global_step: Integer Variable counting the number of training steps
-		processed.
-	Returns:
-	  train_op: op for training.
+	
+	:param total_loss: Total loss from loss().
+	:param global_step: Integer Variable counting the number of training steps processed.
+	:returns: train_op: op for training.
 	"""
+	
 	# Variables that affect learning rate.
 	num_batches_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size
-	decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
+	# decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
 	
 	# Decay the learning rate exponentially based on the number of steps.
-	lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
-	                                global_step,
-	                                decay_steps,
-	                                LEARNING_RATE_DECAY_FACTOR,
-	                                staircase=True)
-	tf.summary.scalar('learning_rate', lr)
+	# lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
+	#                                 global_step,
+	#                                 decay_steps,
+	#                                 LEARNING_RATE_DECAY_FACTOR,
+	#                                 staircase=True)
+	# tf.summary.scalar('learning_rate', lr)
 	
 	# Generate moving averages of all losses and associated summaries.
 	loss_averages_op = _add_loss_summaries(total_loss)
@@ -359,7 +357,10 @@ def train(total_loss, global_step):
 
 
 def maybe_download_and_extract():
-	"""Download and extract the tarball from Alex's website."""
+	"""
+	If needed, downloads and extracts the tarball from Alex's website.
+	"""
+	
 	dest_directory = FLAGS.data_dir
 	if not os.path.exists(dest_directory):
 		os.makedirs(dest_directory)
@@ -373,8 +374,11 @@ def maybe_download_and_extract():
 		
 		filepath, _ = urllib.request.urlretrieve(DATA_URL, filepath, _progress)
 		print()
+		
 		statinfo = os.stat(filepath)
+		
 		print('Successfully downloaded', filename, statinfo.st_size, 'bytes.')
+	
 	extracted_dir_path = os.path.join(dest_directory, 'cifar-10-batches-bin')
 	if not os.path.exists(extracted_dir_path):
 		tarfile.open(filepath, 'r:gz').extractall(dest_directory)
