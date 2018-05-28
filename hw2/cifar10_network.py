@@ -12,6 +12,8 @@ import zipfile
 from time import time
 from urllib.request import urlretrieve
 
+import random
+
 import numpy as np
 import tensorflow as tf
 
@@ -57,13 +59,11 @@ def average_gradients(tower_grads):
 		#   ((grad0_gpu0, var0_gpu0), ... , (grad0_gpuN, var0_gpuN))
 		grads = []
 		
-		grad_and_vars = [(0, _) if g is None else(g, _) for g, _ in grad_and_vars]
 		for g, _ in grad_and_vars:
 			# Add 0 dimension to the gradients to represent the tower.
 			expanded_g = tf.expand_dims(g, 0)
 			# Append on a 'tower' dimension which we will average over below.
 			grads.append(expanded_g)
-		
 		# Average over the 'tower' dimension.
 		grad = tf.concat(grads, 0)
 		grad = tf.reduce_mean(grad, 0)
@@ -142,8 +142,7 @@ def ResNet(_x, keep_prob, reuse):
 		# pool3 = avg_pool_2x2(conv3_3, name="pool3")
 		
 		flat = tf.reshape(gap, [-1, 64], name="flat")
-
-
+		
 		# with tf.variable_scope('fc_1'):
 		# 	fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=32, name="dense_layer"),
 		# 	                name="relu")  # , activation=tf.nn.relu)
@@ -177,30 +176,32 @@ def model():
 		tf.summary.scalar('dropout_keep_probability', keep_prob)
 		
 		for i in range(_NUM_GPUS):
-			_x_image = X_image[i * _BATCH_SIZE: (i+1) * _BATCH_SIZE]
-			_y = Y[i * _BATCH_SIZE: (i+1) * _BATCH_SIZE]
-			
-			logits = ResNet(_x_image, keep_prob, reuse_vars)
-			
-			with tf.name_scope('total'):
-				y_pred_cls = tf.argmax(logits, axis=1, name="y_pred_cls")
+			with tf.device('/gpu:' + str(i)):
+				_x_image = X_image[i * _BATCH_SIZE: (i + 1) * _BATCH_SIZE]
+				_y = Y[i * _BATCH_SIZE: (i + 1) * _BATCH_SIZE]
 				
-				loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=_y), name="loss")
+				logits = ResNet(_x_image, keep_prob, reuse_vars)
+				
+				with tf.name_scope('total'):
+					y_pred_cls = tf.argmax(logits, axis=1, name="y_pred_cls")
+					
+					loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=_y),
+					                      name="loss")
+						correct_prediction = tf.equal(y_pred_cls, tf.argmax(_y, axis=1), name="correct_predictions")
+						accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="accuracy")
+				
 				if i == 0:
-					correct_prediction = tf.equal(y_pred_cls, tf.argmax(_y, axis=1), name="correct_predictions")
-					accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="accuracy")
-			
-			if i == 0:
-				tf.summary.scalar("loss", loss)
-				tf.summary.scalar("accuracy", accuracy)
-			# tf.summary.scalar("correct_predictions", correct_prediction)
-			
-			with tf.name_scope('train'):
-				optimizer = tf.train.AdamOptimizer(1e-3, beta1=0.9, beta2=0.999, epsilon=1e-08, name="AdamOptimizer")
-				grads = optimizer.compute_gradients(loss)
-				tower_grads.append(grads)
-
-			reuse_vars = True
+					tf.summary.scalar("loss", loss)
+					tf.summary.scalar("accuracy", accuracy)
+				# tf.summary.scalar("correct_predictions", correct_prediction)
+				
+				with tf.name_scope('train'):
+					optimizer = tf.train.AdamOptimizer(1e-3, beta1=0.9, beta2=0.999, epsilon=1e-08,
+					                                   name="AdamOptimizer")
+					grads = optimizer.compute_gradients(loss)
+					tower_grads.append(grads)
+				
+				reuse_vars = True
 		
 		avg_grads = average_gradients(tower_grads)
 		train_op = optimizer.apply_gradients(avg_grads)
@@ -377,7 +378,6 @@ test_x, test_y = get_data_set("test")
 x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, keep_prob = model()
 global_accuracy = 0
 
-
 merged = tf.summary.merge_all()
 train_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/train', sess.graph)
 test_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/test')
@@ -403,8 +403,6 @@ def get_total_parametrs():
 	print(total_parameters)
 	with open('total_parameters' + pretty_time() + '.txt', 'w') as f:
 		f.write(str(total_parameters))
-
-
 
 
 # input()
