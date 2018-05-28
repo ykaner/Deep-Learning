@@ -318,7 +318,7 @@ global_accuracy = 0
 
 # PARAMS
 _BATCH_SIZE = 128
-_EPOCH = 50
+_EPOCH = 5
 
 merged = tf.summary.merge_all()
 train_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/train', sess.graph)
@@ -370,12 +370,15 @@ def main(args):
 			save_folder = read_file
 	
 	_EPOCH = args.epochs
-	
+	start = time()
 	for i in range(_EPOCH):
 		print("\nEpoch: {0}/{1}\n".format((i + 1), _EPOCH))
 		start_time = time()
 		train(i)
 		print('epoch %d took: %d time' % (i, time() - start_time))
+	
+	length = time() - start
+	print("{0} Epoches took {1}sec. avg of {2}sec per epoch".format(_EPOCH, length, length / _EPOCH))
 
 
 if __name__ == "__main__":
