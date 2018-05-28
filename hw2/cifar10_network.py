@@ -303,6 +303,8 @@ def test_and_save(epoch):
 		print(mes.format(acc, global_accuracy))
 		global_accuracy = acc
 		
+		if not os.path.exists(save_folder):
+			os.mkdir(save_folder)
 		saver.save(sess, os.path.join(save_folder, save_file))
 	
 	elif global_accuracy == 0:
@@ -329,6 +331,8 @@ saver = tf.train.Saver()
 save_path = 'saves/'
 save_folder = os.path.join(save_path, pretty_time())
 save_file = 'save.ckpt'
+if not os.path.exists(save_path):
+	os.mkdir(save_path)
 
 tf.global_variables_initializer().run(session=sess)
 
@@ -355,13 +359,8 @@ def main(args=None):
 	# tf.gfile.MakeDirs(tmp_path + "tensorbaord/hw2")
 	
 	if args is not None:
-		if not args.load:
-			if not os.path.exists(save_path):
-				os.mkdir(save_path)
-			if not os.path.exists(save_folder):
-				os.mkdir(save_folder)
-		elif args.load:
-			read_file = os.listdir(save_path)
+		if args.load:
+			read_file = sorted(os.listdir(save_path), key=lambda x: os.path.getmtime(os.path.join(save_path, x)))
 			if len(read_file) is 0:
 				print('files to read not found. starting from the begining. ')
 			else:
