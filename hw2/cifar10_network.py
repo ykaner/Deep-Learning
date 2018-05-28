@@ -389,25 +389,27 @@ if not os.path.exists(save_path):
 
 tf.global_variables_initializer().run(session=sess)
 
-total_parameters = 0
-for variable in tf.trainable_variables():
-	shape = variable.get_shape()
-	variable_parameters = 1
-	for dim in shape:
-		variable_parameters *= dim.value
-	total_parameters += variable_parameters
-print(total_parameters)
-with open('total_parameters' + pretty_time() + '.txt', 'w') as f:
-	f.write(str(total_parameters))
+
+def get_total_parametrs():
+	total_parameters = 0
+	for variable in tf.trainable_variables():
+		shape = variable.get_shape()
+		variable_parameters = 1
+		for dim in shape:
+			variable_parameters *= dim.value
+		total_parameters += variable_parameters
+	print(total_parameters)
+	with open('total_parameters' + pretty_time() + '.txt', 'w') as f:
+		f.write(str(total_parameters))
+
+
 
 
 # input()
 
 
 def main(args=None):
-	global _EPOCH
-	global _NUM_GPUS
-	global save_folder
+	global _EPOCH, _NUM_GPUS, save_folder
 	# if tf.gfile.Exists(tmp_path + "tensorboard/hw2"):
 	# 	tf.gfile.DeleteRecursively(tmp_path + "tensorboard/hw2")
 	# tf.gfile.MakeDirs(tmp_path + "tensorbaord/hw2")
@@ -427,10 +429,12 @@ def main(args=None):
 		
 		_EPOCH = args.epochs
 		_NUM_GPUS = args.gpus
-	else:
+		else:
 		_EPOCH = 5
 		_NUM_GPUS = 4
-		
+	
+	get_total_parametrs()
+	
 	start = time()
 	for i in range(_EPOCH):
 		print("\nEpoch: {0}/{1}\n".format((i + 1), _EPOCH))
