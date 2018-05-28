@@ -393,11 +393,10 @@ def train(epoch):
 				initializer=tf.constant_initializer(0), trainable=False)
 		
 		global tensorboard_train_counter
-		total_batch = _BATCH_SIZE * _NUM_GPUS
-		batch_count = int(math.ceil(len(train_x) / total_batch))
+		batch_count = int(math.ceil(len(train_x) / _TOTAL_BATCH))
 		for s in range(batch_count):
-			batch_xs = train_x[s * total_batch: (s + 1) * total_batch]
-			batch_ys = train_y[s * total_batch: (s + 1) * total_batch]
+			batch_xs = train_x[s * _TOTAL_BATCH: (s + 1) * _TOTAL_BATCH]
+			batch_ys = train_y[s * _TOTAL_BATCH: (s + 1) * _TOTAL_BATCH]
 			
 			start_time = time()
 			summery, _, batch_loss, batch_acc = sess.run(
@@ -430,7 +429,7 @@ def test_and_save(epoch):
 	predicted_class = np.zeros(shape=len(test_x), dtype=np.int)
 	while i < len(test_x):
 		# run_metadata = tf.RunMetadata()
-		j = min(i + _BATCH_SIZE, len(test_x))
+		j = min(i + _TOTAL_BATCH, len(test_x))
 		batch_xs = test_x[i:j, :]
 		batch_ys = test_y[i:j, :]
 		summary, predicted_class[i:j] = sess.run(
@@ -473,6 +472,7 @@ _NUM_CLASSES = 10
 _BATCH_SIZE = 128
 _EPOCH = 5
 _NUM_GPUS = 4
+_TOTAL_BATCH = _BATCH_SIZE * _NUM_GPUS
 
 train_x, train_y = get_data_set("train")
 test_x, test_y = get_data_set("test")
@@ -517,7 +517,7 @@ def get_total_parameters():
 
 
 def main(args=None):
-	global _EPOCH, _NUM_GPUS, save_folder
+	global _EPOCH, _NUM_GPUS, _TOTAL_BATCH, save_folder
 	# if tf.gfile.Exists(tmp_path + "tensorboard/hw2"):
 	# 	tf.gfile.DeleteRecursively(tmp_path + "tensorboard/hw2")
 	# tf.gfile.MakeDirs(tmp_path + "tensorbaord/hw2")
@@ -541,6 +541,9 @@ def main(args=None):
 		_EPOCH = 5
 		_NUM_GPUS = 4
 	
+	_TOTAL_BATCH = _BATCH_SIZE * _NUM_GPUS
+	
+	print('calculating parameters')
 	get_total_parameters()
 	
 	start = time()
