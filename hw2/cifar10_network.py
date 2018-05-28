@@ -469,7 +469,7 @@ def test_and_save(epoch):
 _NUM_CLASSES = 10
 
 # PARAMS
-_BATCH_SIZE = 128
+_BATCH_SIZE = 100
 _EPOCH = 5
 _NUM_GPUS = 4
 _TOTAL_BATCH = _BATCH_SIZE * _NUM_GPUS
