@@ -49,113 +49,160 @@ def avg_pool_2x2(x, name):
 	return tf.nn.avg_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
 
 
+def average_gradients(tower_grads):
+	average_grads = []
+	for grad_and_vars in zip(*tower_grads):
+		# Note that each grad_and_vars looks like the following:
+		#   ((grad0_gpu0, var0_gpu0), ... , (grad0_gpuN, var0_gpuN))
+		grads = []
+		for g, _ in grad_and_vars:
+			# Add 0 dimension to the gradients to represent the tower.
+			expanded_g = tf.expand_dims(g, 0)
+			# Append on a 'tower' dimension which we will average over below.
+			grads.append(expanded_g)
+		
+		# Average over the 'tower' dimension.
+		grad = tf.concat(grads, 0)
+		grad = tf.reduce_mean(grad, 0)
+		
+		# Keep in mind that the Variables are redundant because they are shared
+		# across towers. So .. we will just return the first tower's pointer to
+		# the Variable.
+		v = grad_and_vars[0][1]
+		grad_and_var = (grad, v)
+		average_grads.append(grad_and_var)
+	return average_grads
+
+
+def ResNet(_x, keep_prob, reuse):
+	with tf.variable_scope('ResNet', reuse=reuse):
+		conv0 = utils.tensorboard.conv2d_layer(_x, [3, 3, 3, 16], layer_name="conv_0")
+		
+		def conv1_act(out, name):
+			return tf.nn.relu(out + conv0, name)
+		
+		conv1 = utils.tensorboard.conv2d_layer(conv0, [3, 3, 16, 16], layer_name="conv_1", act=tf.nn.relu)
+		
+		conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", act=conv1_act)
+		
+		# pool = max_pool_2x2(conv1_1, name="pool")
+		
+		drop = tf.nn.dropout(conv1_1, keep_prob, name="drop")
+		
+		def identical(val, name=''):
+			return val
+		
+		shortcut2 = utils.tensorboard.conv2d_layer(drop, [1, 1, 16, 32], layer_name="shortcut2", strides=[1, 2, 2, 1],
+		                                           act=identical)
+		
+		def conv2_act(out, name):
+			return tf.nn.relu(out + shortcut2, name)
+		
+		conv2 = utils.tensorboard.conv2d_layer(drop, [3, 3, 16, 32], layer_name="conv_2", strides=[1, 2, 2, 1],
+		                                       act=tf.nn.relu)
+		
+		conv2_1 = utils.tensorboard.conv2d_layer(conv2, [3, 3, 32, 32], layer_name="conv_2_1", act=conv2_act)
+		
+		shortcut2_2 = conv2_1
+		
+		def conv2_2_act(out, name):
+			return tf.nn.relu(out + shortcut2_2, name)
+		
+		conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", act=tf.nn.relu)
+		
+		conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", act=conv2_2_act)
+		
+		pool2 = conv2_3  # max_pool_2x2(conv2_3, name="pool2")
+		
+		shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", strides=[1, 2, 2, 1],
+		                                           act=identical)
+		
+		def conv3_act(out, name):
+			return tf.nn.relu(out + shortcut3, name)
+		
+		conv3 = utils.tensorboard.conv2d_layer(pool2, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1],
+		                                       act=tf.nn.relu)
+		
+		conv3_1 = utils.tensorboard.conv2d_layer(conv3, [3, 3, 64, 64], layer_name="conv_3_1", act=conv3_act)
+		
+		shortcut3_2 = conv3_1
+		
+		def conv3_2_act(out, name):
+			return tf.nn.relu(out + shortcut3_2, name)
+		
+		conv3_2 = utils.tensorboard.conv2d_layer(conv3_1, [3, 3, 64, 64], layer_name="conv_3_2", act=tf.nn.relu)
+		
+		conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [3, 3, 64, 64], layer_name="conv_3_3", act=conv3_2_act)
+		
+		gap = tf.layers.average_pooling2d(conv3_3, [8, 8], [8, 8], padding='VALID', name='gap')
+		
+		# pool3 = avg_pool_2x2(conv3_3, name="pool3")
+		
+		flat = tf.reshape(gap, [-1, 64], name="flat")
+
+
+		# with tf.variable_scope('fc_1'):
+		# 	fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=32, name="dense_layer"),
+		# 	                name="relu")  # , activation=tf.nn.relu)
+		# 	drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
+		#
+		# tf.summary.histogram("drop4", drop4)
+		
+		logits = tf.nn.softmax(tf.layers.dense(inputs=flat, units=_NUM_CLASSES), name="softmax")
+	
+	return logits
+
+
 def model():
 	_IMAGE_SIZE = 32
 	_IMAGE_CHANNELS = 3
-	_NUM_CLASSES = 10
-	
-	with tf.name_scope('input'):
-		x = tf.placeholder(tf.float32, shape=[None, _IMAGE_SIZE * _IMAGE_SIZE * _IMAGE_CHANNELS], name='Input')
-		y = tf.placeholder(tf.float32, shape=[None, _NUM_CLASSES], name='Output')
-	
-	with tf.name_scope('input_reshape'):
-		x_image = tf.reshape(x, [-1, _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS], name='images')
-	
-	tf.summary.image("intput", x_image, 10)
-	
-	with tf.name_scope('dropout'):
-		keep_prob = tf.placeholder(tf.float32, name="keep_prob")
-	
-	tf.summary.scalar('dropout_keep_probability', keep_prob)
-	
-	conv0 = utils.tensorboard.conv2d_layer(x_image, [3, 3, 3, 16], layer_name="conv_0")
-	
-	def conv1_act(out, name):
-		return tf.nn.relu(out + conv0, name)
-	
-	conv1 = utils.tensorboard.conv2d_layer(conv0, [3, 3, 16, 16], layer_name="conv_1", act=tf.nn.relu)
-	
-	conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", act=conv1_act)
-	
-	# pool = max_pool_2x2(conv1_1, name="pool")
-	
-	drop = tf.nn.dropout(conv1_1, keep_prob, name="drop")
-	
-	def identical(val, name=''):
-		return val
-	
-	shortcut2 = utils.tensorboard.conv2d_layer(drop, [1, 1, 16, 32], layer_name="shortcut2", strides=[1, 2, 2, 1],
-	                                           act=identical)
-	
-	def conv2_act(out, name):
-		return tf.nn.relu(out + shortcut2, name)
-	
-	conv2 = utils.tensorboard.conv2d_layer(drop, [3, 3, 16, 32], layer_name="conv_2", strides=[1, 2, 2, 1],
-	                                       act=tf.nn.relu)
-	
-	conv2_1 = utils.tensorboard.conv2d_layer(conv2, [3, 3, 32, 32], layer_name="conv_2_1", act=conv2_act)
-	
-	shortcut2_2 = conv2_1
-	
-	def conv2_2_act(out, name):
-		return tf.nn.relu(out + shortcut2_2, name)
-	
-	conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", act=tf.nn.relu)
-	
-	conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", act=conv2_2_act)
-	
-	pool2 = conv2_3  # max_pool_2x2(conv2_3, name="pool2")
-	
-	shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", strides=[1, 2, 2, 1],
-	                                           act=identical)
-	
-	def conv3_act(out, name):
-		return tf.nn.relu(out + shortcut3, name)
-	
-	conv3 = utils.tensorboard.conv2d_layer(pool2, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1],
-	                                       act=tf.nn.relu)
-	
-	conv3_1 = utils.tensorboard.conv2d_layer(conv3, [3, 3, 64, 64], layer_name="conv_3_1", act=conv3_act)
-	
-	shortcut3_2 = conv3_1
-	
-	def conv3_2_act(out, name):
-		return tf.nn.relu(out + shortcut3_2, name)
-	
-	conv3_2 = utils.tensorboard.conv2d_layer(conv3_1, [3, 3, 64, 64], layer_name="conv_3_2", act=tf.nn.relu)
-	
-	conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [3, 3, 64, 64], layer_name="conv_3_3", act=conv3_2_act)
-	
-	gap = tf.layers.average_pooling2d(conv3_3, [8, 8], [8, 8], padding='VALID', name='gap')
-	
-	# pool3 = avg_pool_2x2(conv3_3, name="pool3")
-	
-	flat = tf.reshape(gap, [-1, 64], name="flat")
-	
-	# with tf.variable_scope('fc_1'):
-	# 	fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=32, name="dense_layer"),
-	# 	                name="relu")  # , activation=tf.nn.relu)
-	# 	drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
-	#
-	# tf.summary.histogram("drop4", drop4)
-	
-	with tf.name_scope('total'):
-		softmax = tf.nn.softmax(tf.layers.dense(inputs=flat, units=_NUM_CLASSES), name="softmax")
-		y_pred_cls = tf.argmax(softmax, axis=1, name="y_pred_cls")
+	with tf.device('/cpu:0'):
+		tower_grads = []
+		reuse_vars = False
+		with tf.name_scope('input'):
+			X = tf.placeholder(tf.float32, shape=[None, _IMAGE_SIZE * _IMAGE_SIZE * _IMAGE_CHANNELS], name='Input')
+			Y = tf.placeholder(tf.float32, shape=[None, _NUM_CLASSES], name='Output')
 		
-		loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=softmax, labels=y), name="loss")
-		correct_prediction = tf.equal(y_pred_cls, tf.argmax(y, axis=1), name="correct_predictions")
-		accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="accuracy")
+		with tf.name_scope('input_reshape'):
+			X_image = tf.reshape(X, [-1, _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS], name='images')
+		
+		tf.summary.image("intput", X_image, 10)
+		
+		with tf.name_scope('dropout_parameter'):
+			keep_prob = tf.placeholder(tf.float32, name="keep_prob")
+		
+		tf.summary.scalar('dropout_keep_probability', keep_prob)
+		
+		for i in range(_NUM_GPUS):
+			_x_image = X_image[i * _BATCH_SIZE: (i+1) * _BATCH_SIZE]
+			_y = Y[i * _BATCH_SIZE: (i+1) * _BATCH_SIZE]
+			
+			logits = ResNet(_x_image, keep_prob, reuse_vars)
+			
+			with tf.name_scope('total'):
+				y_pred_cls = tf.argmax(logits, axis=1, name="y_pred_cls")
+				
+				loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=softmax, labels=_y), name="loss")
+				if i == 0:
+					correct_prediction = tf.equal(y_pred_cls, tf.argmax(_y, axis=1), name="correct_predictions")
+					accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="accuracy")
+			
+			if i == 0:
+				tf.summary.scalar("loss", loss)
+				tf.summary.scalar("accuracy", accuracy)
+			# tf.summary.scalar("correct_predictions", correct_prediction)
+			
+			with tf.name_scope('train'):
+				optimizer = tf.train.AdamOptimizer(1e-3, beta1=0.9, beta2=0.999, epsilon=1e-08, name="AdamOptimizer")
+				grads = optimizer.compute_gradients(loss)
+				tower_grads.append(grads)
+
+			reuse_vars = True
+		
+		avg_grads = average_gradients(tower_grads)
+		train_op = optimizer.apply_gradients(avg_grads)
 	
-	tf.summary.scalar("loss", loss)
-	tf.summary.scalar("accuracy", accuracy)
-	# tf.summary.scalar("correct_predictions", correct_prediction)
-	
-	with tf.name_scope('train'):
-		optimizer = tf.train.AdamOptimizer(1e-3, beta1=0.9, beta2=0.999, epsilon=1e-08, name="AdamOptimizer").minimize(
-				loss, name="train_step")
-	
-	return x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, keep_prob
+	return X, Y, loss, train_op, correct_prediction, accuracy, y_pred_cls, keep_prob
 
 
 def get_data_set(name="train"):
@@ -248,10 +295,11 @@ def maybe_download_and_extract():
 
 def train(epoch):
 	global tensorboard_train_counter
-	batch_count = int(math.ceil(len(train_x) / _BATCH_SIZE))
+	total_batch = _BATCH_SIZE * _NUM_GPUS
+	batch_count = int(math.ceil(len(train_x) / total_batch))
 	for s in range(batch_count):
-		batch_xs = train_x[s * _BATCH_SIZE: (s + 1) * _BATCH_SIZE]
-		batch_ys = train_y[s * _BATCH_SIZE: (s + 1) * _BATCH_SIZE]
+		batch_xs = train_x[s * total_batch: (s + 1) * total_batch]
+		batch_ys = train_y[s * total_batch: (s + 1) * total_batch]
 		
 		start_time = time()
 		summery, _, batch_loss, batch_acc = sess.run(
@@ -313,15 +361,19 @@ def test_and_save(epoch):
 	print("###########################################################################################################")
 
 
+# GLOBALS
+_NUM_CLASSES = 10
+
+# PARAMS
+_BATCH_SIZE = 128
+_EPOCH = 5
+_NUM_GPUS = 4
 
 train_x, train_y = get_data_set("train")
 test_x, test_y = get_data_set("test")
 x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, keep_prob = model()
 global_accuracy = 0
 
-# PARAMS
-_BATCH_SIZE = 128
-_EPOCH = 5
 
 merged = tf.summary.merge_all()
 train_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/train', sess.graph)
@@ -353,6 +405,7 @@ with open('total_parameters' + pretty_time() + '.txt', 'w') as f:
 
 def main(args=None):
 	global _EPOCH
+	global _NUM_GPUS
 	global save_folder
 	# if tf.gfile.Exists(tmp_path + "tensorboard/hw2"):
 	# 	tf.gfile.DeleteRecursively(tmp_path + "tensorboard/hw2")
@@ -369,9 +422,12 @@ def main(args=None):
 				saver.restore(sess, os.path.join(read_file, 'save.ckpt'))
 				
 				save_folder = read_file
+		
 		_EPOCH = args.epochs
+		_NUM_GPUS = args.gpus
 	else:
 		_EPOCH = 5
+		_NUM_GPUS = 4
 	# save_folder = # TODO Default save folder
 	# save_path = # TODO Default save path
 		

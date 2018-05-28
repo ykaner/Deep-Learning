@@ -14,29 +14,6 @@ def variable_summaries(var):
 		tf.summary.histogram('histogram', var)
 
 
-def nn_layer(input_tensor, input_dim, output_dim, layer_name, act=tf.nn.relu):
-	"""Reusable code for making a simple neural net layer.
-	It does a matrix multiply, bias add, and then uses ReLU to nonlinearize.
-	It also sets up name scoping so that the resultant graph is easy to read,
-	and adds a number of summary ops.
-	"""
-	# Adding a name scope ensures logical grouping of the layers in the graph.
-	with tf.name_scope(layer_name):
-		# This Variable will hold the state of the weights for the layer
-		with tf.name_scope('weights'):
-			weights = weight_variable([input_dim, output_dim])
-			variable_summaries(weights)
-		with tf.name_scope('biases'):
-			biases = bias_variable([output_dim])
-			variable_summaries(biases)
-		with tf.name_scope('Wx_plus_b'):
-			preactivate = tf.matmul(input_tensor, weights, name="pre_activations") + biases
-			tf.summary.histogram('pre_activations', preactivate)
-		activations = act(preactivate, name='activation')
-		tf.summary.histogram('activations', activations)
-		return activations
-
-
 def conv2d_layer(input_tensor, weights_shape, layer_name, strides=[1, 1, 1, 1], padding="SAME", act=tf.nn.relu):
 	with tf.name_scope(layer_name):
 		# This Variable will hold the state of the weights for the layer
