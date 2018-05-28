@@ -1,5 +1,5 @@
 TODO list
-=
-
-- Multi-GPU towers thingy
-- data augmentation
+=========
+<!--  TODO those -->
+- [ ] Multi-GPU towers thingy
+- [ ] data augmentation
