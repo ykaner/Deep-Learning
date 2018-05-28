@@ -213,7 +213,7 @@ def model():
 				with tf.name_scope('train'):
 					optimizer = tf.train.AdamOptimizer(1e-3, beta1=0.9, beta2=0.999, epsilon=1e-08,
 					                                   name="AdamOptimizer")
-					grads = optimizer.compute_gradients(loss)
+					grads = optimizer.compute_gradients(loss, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES))
 					tower_grads.append(grads)
 				
 				reuse_vars = True
