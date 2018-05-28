@@ -60,7 +60,7 @@ def average_gradients(tower_grads):
 		grads = []
 		
 		is_p = 10
-		# grad_and_vars = [(0, _) if g is None else (g, _) for g, _ in grad_and_vars]
+		grad_and_vars = [(0, _) if g is None else (g, _) for g, _ in grad_and_vars]
 		for g, _ in grad_and_vars:
 			if is_p:
 				print(g)
