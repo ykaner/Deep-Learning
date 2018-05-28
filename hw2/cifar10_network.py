@@ -12,8 +12,6 @@ import zipfile
 from time import time
 from urllib.request import urlretrieve
 
-import random
-
 import numpy as np
 import tensorflow as tf
 
@@ -53,6 +51,15 @@ def avg_pool_2x2(x, name):
 
 
 def average_gradients(tower_grads):
+	"""
+	Calculate the average gradient for each shared variable across all towers.
+	
+	Note that this function provides a synchronization point across all towers.
+	
+	:param tower_grads: List of lists of (gradient, variable) tuples. The outer list is over individual gradients. The inner list is over the gradient calculation for each tower.
+	:returns: List of pairs of (gradient, variable) where the gradient has been averaged across all towers.
+	"""
+	
 	average_grads = []
 	for grad_and_vars in zip(*tower_grads):
 		# Note that each grad_and_vars looks like the following:
@@ -65,7 +72,7 @@ def average_gradients(tower_grads):
 			# Append on a 'tower' dimension which we will average over below.
 			grads.append(expanded_g)
 		# Average over the 'tower' dimension.
-		grad = tf.concat(grads, 0)
+		grad = tf.concat(axis=0, values=grads)
 		grad = tf.reduce_mean(grad, 0)
 		
 		# Keep in mind that the Variables are redundant because they are shared
@@ -268,6 +275,13 @@ def dense_to_one_hot(labels_dense, num_classes=10):
 
 
 def _print_download_progress(count, block_size, total_size):
+	"""
+	
+	:param count:
+	:param block_size:
+	:param total_size:
+	:return:
+	"""
 	pct_complete = float(count * block_size) / total_size
 	msg = "\r- Download progress: {0:.1%}".format(pct_complete)
 	sys.stdout.write(msg)
@@ -275,6 +289,10 @@ def _print_download_progress(count, block_size, total_size):
 
 
 def maybe_download_and_extract():
+	"""
+	Download the dataset if needed.
+	"""
+	
 	main_directory = tmp_path + "data_set/"
 	cifar_10_directory = main_directory + "cifar_10/"
 	if not os.path.exists(main_directory) or not os.path.exists(cifar_10_directory):
@@ -299,6 +317,13 @@ def maybe_download_and_extract():
 
 
 def train(epoch):
+	"""
+	Train the network.
+	
+	:param epoch: The current epoch
+	:type epoch: int
+	"""
+	
 	global tensorboard_train_counter
 	total_batch = _BATCH_SIZE * _NUM_GPUS
 	batch_count = int(math.ceil(len(train_x) / total_batch))
@@ -323,6 +348,13 @@ def train(epoch):
 
 
 def test_and_save(epoch):
+	"""
+	Test the current accuracy and update the global variable global_accuracy accordingly
+	
+	:param epoch: The current epoch
+	:type epoch: int
+	"""
+	
 	global global_accuracy, tensorboard_test_counter
 	run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
 	
@@ -393,7 +425,11 @@ if not os.path.exists(save_path):
 tf.global_variables_initializer().run(session=sess)
 
 
-def get_total_parametrs():
+def get_total_parameters():
+	"""
+	Calculate how match parameters do we have in the graph.
+	:return: The number of parameters in the graph.
+	"""
 	total_parameters = 0
 	for variable in tf.trainable_variables():
 		shape = variable.get_shape()
@@ -434,7 +470,7 @@ def main(args=None):
 		_EPOCH = 5
 		_NUM_GPUS = 4
 	
-	get_total_parametrs()
+	get_total_parameters()
 	
 	start = time()
 	for i in range(_EPOCH):
