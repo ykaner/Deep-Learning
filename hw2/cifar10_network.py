@@ -66,11 +66,13 @@ def average_gradients(tower_grads):
 		#   ((grad0_gpu0, var0_gpu0), ... , (grad0_gpuN, var0_gpuN))
 		grads = []
 		
+		grad_and_vars = [(0, _) if g is None else (g, _) for g, _ in grad_and_vars]
 		for g, _ in grad_and_vars:
 			# Add 0 dimension to the gradients to represent the tower.
 			expanded_g = tf.expand_dims(g, 0)
 			# Append on a 'tower' dimension which we will average over below.
 			grads.append(expanded_g)
+		
 		# Average over the 'tower' dimension.
 		grad = tf.concat(axis=0, values=grads)
 		grad = tf.reduce_mean(grad, 0)
@@ -183,7 +185,7 @@ def model():
 		tf.summary.scalar('dropout_keep_probability', keep_prob)
 		
 		for i in range(_NUM_GPUS):
-			with tf.device('/gpu:' + str(i)):
+			with tf.device('/gpu:{}'.format(i)):
 				_x_image = X_image[i * _BATCH_SIZE: (i + 1) * _BATCH_SIZE]
 				_y = Y[i * _BATCH_SIZE: (i + 1) * _BATCH_SIZE]
 				
