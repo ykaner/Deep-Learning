@@ -16,6 +16,7 @@ import numpy as np
 import tensorflow as tf
 
 import utils.tensorboard
+from . import cifar10
 
 if os.name is "nt":
 	tmp_path = "C:/tmp/"
