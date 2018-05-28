@@ -12,6 +12,8 @@ import zipfile
 from time import time
 from urllib.request import urlretrieve
 
+import random
+
 import numpy as np
 import tensorflow as tf
 
@@ -57,8 +59,12 @@ def average_gradients(tower_grads):
 		#   ((grad0_gpu0, var0_gpu0), ... , (grad0_gpuN, var0_gpuN))
 		grads = []
 		
-		grad_and_vars = [(0, _) if g is None else(g, _) for g, _ in grad_and_vars]
+		is_p = 10
+		grad_and_vars = [(0, _) if g is None else (g, _) for g, _ in grad_and_vars]
 		for g, _ in grad_and_vars:
+			if is_p:
+				print(g)
+				is_p -= 1
 			# Add 0 dimension to the gradients to represent the tower.
 			expanded_g = tf.expand_dims(g, 0)
 			# Append on a 'tower' dimension which we will average over below.
@@ -142,8 +148,7 @@ def ResNet(_x, keep_prob, reuse):
 		# pool3 = avg_pool_2x2(conv3_3, name="pool3")
 		
 		flat = tf.reshape(gap, [-1, 64], name="flat")
-
-
+		
 		# with tf.variable_scope('fc_1'):
 		# 	fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=32, name="dense_layer"),
 		# 	                name="relu")  # , activation=tf.nn.relu)
@@ -177,8 +182,8 @@ def model():
 		tf.summary.scalar('dropout_keep_probability', keep_prob)
 		
 		for i in range(_NUM_GPUS):
-			_x_image = X_image[i * _BATCH_SIZE: (i+1) * _BATCH_SIZE]
-			_y = Y[i * _BATCH_SIZE: (i+1) * _BATCH_SIZE]
+			_x_image = X_image[i * _BATCH_SIZE: (i + 1) * _BATCH_SIZE]
+			_y = Y[i * _BATCH_SIZE: (i + 1) * _BATCH_SIZE]
 			
 			logits = ResNet(_x_image, keep_prob, reuse_vars)
 			
@@ -199,7 +204,7 @@ def model():
 				optimizer = tf.train.AdamOptimizer(1e-3, beta1=0.9, beta2=0.999, epsilon=1e-08, name="AdamOptimizer")
 				grads = optimizer.compute_gradients(loss)
 				tower_grads.append(grads)
-
+			
 			reuse_vars = True
 		
 		avg_grads = average_gradients(tower_grads)
@@ -377,7 +382,6 @@ test_x, test_y = get_data_set("test")
 x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, keep_prob = model()
 global_accuracy = 0
 
-
 merged = tf.summary.merge_all()
 train_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/train', sess.graph)
 test_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/test')
@@ -403,8 +407,6 @@ def get_total_parametrs():
 	print(total_parameters)
 	with open('total_parameters' + pretty_time() + '.txt', 'w') as f:
 		f.write(str(total_parameters))
-
-
 
 
 # input()
