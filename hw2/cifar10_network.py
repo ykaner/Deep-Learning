@@ -76,7 +76,7 @@ def average_gradients(tower_grads):
 			print(g)
 			if not cur_shape and g is not None:
 				cur_shape = g.shape
-			g = tf.zeros([3, 3, 3, 16]) if g is None else g
+			g = tf.zeros(cur_shape) if g is None else g
 			expanded_g = tf.expand_dims(g, 0)
 			# Append on a 'tower' dimension which we will average over below.
 			grads.append(expanded_g)
