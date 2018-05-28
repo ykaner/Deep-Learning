@@ -523,7 +523,6 @@ def train(epoch):
 		
 		global tensorboard_train_counter
 		total_batch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
-		batch_count = int(math.ceil(len(train_x) / total_batch))
 		batch_count = int(math.ceil(len(train_x) / _TOTAL_BATCH))
 		for s in range(batch_count):
 			batch_xs = train_x[s * _TOTAL_BATCH: (s + 1) * _TOTAL_BATCH]
@@ -600,7 +599,7 @@ def test_and_save(epoch):
 _NUM_CLASSES = 10
 
 # PARAMS
-NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 128
+NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 100
 _EPOCH = 5
 _NUM_GPUS = 4
 _TOTAL_BATCH = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
