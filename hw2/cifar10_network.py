@@ -1,18 +1,17 @@
 #! python3
 from __future__ import absolute_import
 
-import datetime
 import glob
 import math
 import os
 import pickle
+import re
 import sys
 import tarfile
 import zipfile
+from datetime import datetime
 from time import time
 from urllib.request import urlretrieve
-
-import random
 
 import numpy as np
 import tensorflow as tf
@@ -31,7 +30,7 @@ sess = tf.Session()
 
 
 def pretty_time():
-	return str(datetime.datetime.now().replace(microsecond=0)).replace(':', '-')
+	return str(datetime.now().replace(microsecond=0)).replace(':', '-')
 
 
 def weight_variable(shape):
@@ -50,6 +49,40 @@ def max_pool_2x2(x, name):
 
 def avg_pool_2x2(x, name):
 	return tf.nn.avg_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
+
+
+def tower_loss(scope, images, labels):
+	"""
+	Calculate the total loss on a single tower running the CIFAR model.
+	
+	:param scope: unique prefix string identifying the CIFAR tower, e.g. 'tower_0'
+	:param images: Images. 4D tensor of shape [batch_size, height, width, 3].
+	:param labels: Labels. 1D tensor of shape [batch_size].
+	:returns: Tensor of shape [] containing the total loss for a batch of data
+	"""
+	
+	# Build inference Graph.
+	logits = cifar10.inference(images)
+	
+	# Build the portion of the Graph calculating the losses. Note that we will
+	# assemble the total_loss using a custom function below.
+	_ = cifar10.loss(logits, labels)
+	
+	# Assemble all of the losses for the current tower only.
+	losses = tf.get_collection('losses', scope)
+	
+	# Calculate the total loss for the current tower.
+	total_loss = tf.add_n(losses, name='total_loss')
+	
+	# Attach a scalar summary to all individual losses and the total loss; do the
+	# same for the averaged version of the losses.
+	for l in losses + [total_loss]:
+		# Remove 'tower_[0-9]/' from the name in case this is a multi-GPU training
+		# session. This helps the clarity of presentation on tensorboard.
+		loss_name = re.sub('tower_[0-9]*/', '', l.op.name)
+		tf.summary.scalar(loss_name, l)
+	
+	return total_loss
 
 
 def average_gradients(tower_grads):
