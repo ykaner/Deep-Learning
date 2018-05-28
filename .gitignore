@@ -9,3 +9,6 @@ examples/*
 *.doc
 *.docx
 *.pdf
+
+
+total_parameters*.txt
