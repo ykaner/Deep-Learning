@@ -258,9 +258,9 @@ def model():
 						loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=_y),
 						                      name="loss")
 						correct_prediction = tf.equal(y_pred_cls, tf.argmax(_y, axis=1), name="correct_predictions")
-						correct_predictions += list(correct_prediction)
+						correct_predictions.append(correct_prediction)
 						accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="accuracy")
-						accuracies += list(accuracy)
+						accuracies.append(accuracy)
 					
 					with tf.device('/cpu:0'):
 						tf.summary.scalar("loss", loss)
@@ -276,9 +276,12 @@ def model():
 					reuse_vars = True
 		
 		avg_grads = average_gradients(tower_grads)
+		
+		correct_predictions = tf.concat(correct_predictions, axis=0)
+		accuracy = tf.reduce_mean(accuracies)
 		train_op = optimizer.apply_gradients(avg_grads)
 	
-	return X, Y, loss, train_op, correct_predictions, accuracies, y_pred_cls, keep_prob
+	return X, Y, loss, train_op, correct_predictions, accuracy, y_pred_cls, keep_prob
 
 
 def get_data_set(name="train"):
