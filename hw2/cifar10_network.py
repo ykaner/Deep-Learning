@@ -187,6 +187,7 @@ def model():
 					
 					loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=_y),
 					                      name="loss")
+					if i == 0:
 						correct_prediction = tf.equal(y_pred_cls, tf.argmax(_y, axis=1), name="correct_predictions")
 						accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="accuracy")
 				
