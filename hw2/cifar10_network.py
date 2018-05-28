@@ -311,6 +311,7 @@ def test_and_save(epoch):
 	print("###########################################################################################################")
 
 
+
 train_x, train_y = get_data_set("train")
 test_x, test_y = get_data_set("test")
 x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, keep_prob = model()
@@ -346,30 +347,35 @@ with open('total_parameters' + pretty_time() + '.txt', 'w') as f:
 # input()
 
 
-def main(args):
+def main(args=None):
 	global _EPOCH
 	global save_folder
 	# if tf.gfile.Exists(tmp_path + "tensorboard/hw2"):
 	# 	tf.gfile.DeleteRecursively(tmp_path + "tensorboard/hw2")
 	# tf.gfile.MakeDirs(tmp_path + "tensorbaord/hw2")
 	
-	if not args.load:
-		if not os.path.exists(save_path):
-			os.mkdir(save_path)
-		if not os.path.exists(save_folder):
-			os.mkdir(save_folder)
-	elif args.load:
-		read_file = os.listdir(save_path)
-		if len(read_file) is 0:
-			print('files to read not found. starting from the begining. ')
-		else:
-			print('restoring last check point')
-			read_file = os.path.join(save_path, read_file[-1])
-			saver.restore(sess, os.path.join(read_file, 'save.ckpt'))
-			
-			save_folder = read_file
-	
-	_EPOCH = args.epochs
+	if args is not None:
+		if not args.load:
+			if not os.path.exists(save_path):
+				os.mkdir(save_path)
+			if not os.path.exists(save_folder):
+				os.mkdir(save_folder)
+		elif args.load:
+			read_file = os.listdir(save_path)
+			if len(read_file) is 0:
+				print('files to read not found. starting from the begining. ')
+			else:
+				print('restoring last check point')
+				read_file = os.path.join(save_path, read_file[-1])
+				saver.restore(sess, os.path.join(read_file, 'save.ckpt'))
+				
+				save_folder = read_file
+		_EPOCH = args.epochs
+	else:
+		_EPOCH = 5
+	# save_folder = # TODO Default save folder
+	# save_path = # TODO Default save path
+		
 	start = time()
 	for i in range(_EPOCH):
 		print("\nEpoch: {0}/{1}\n".format((i + 1), _EPOCH))
