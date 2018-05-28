@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import datetime
+import glob
 import math
 import os
 import pickle
@@ -413,12 +414,12 @@ def main(args=None):
 	
 	if args is not None:
 		if args.load:
-			read_file = sorted(os.listdir(save_path), key=lambda x: os.path.getmtime(os.path.join(save_path, x)))
+			saves = glob.glob(save_path + "*")
+			read_file = max(saves, key=os.path.getmtime, default=save_folder)
 			if len(read_file) is 0:
 				print('files to read not found. starting from the begining. ')
 			else:
 				print('restoring last check point')
-				read_file = os.path.join(save_path, read_file[-1])
 				saver.restore(sess, os.path.join(read_file, 'save.ckpt'))
 				
 				save_folder = read_file
