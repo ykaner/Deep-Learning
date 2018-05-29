@@ -514,7 +514,7 @@ def train(epoch):
 		global tensorboard_train_counter
 		batch_count = int(math.ceil(len(train_x) / NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN))
 		
-		images, labels = cifar10.inputs()
+		images, labels = cifar10.inputs(eval_data=False)
 		
 		train_xs, train_ys = tf.train.batch(
 				[images, labels],
