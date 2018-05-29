@@ -123,7 +123,7 @@ def average_gradients(tower_grads):
 	return average_grads
 
 
-def ResNet(_x, keep_prob, reuse):
+def ResNet(_x, keep_prob, reuse=False):
 	with tf.variable_scope('ResNet', reuse=reuse):
 		conv0 = utils.tensorboard.conv2d_layer(_x, [3, 3, 3, 16], layer_name="conv_0")
 		
@@ -392,7 +392,7 @@ def theirs_train():
 		# opt = tf.train.GradientDescentOptimizer(lr)
 		
 		# Get images and labels for CIFAR-10.
-		# images, labels = cifar10.distorted_inputs()
+		images, labels = cifar10.distorted_inputs()
 		batch_queue = tf.contrib.slim.prefetch_queue.prefetch_queue(
 				[images, labels], capacity=3 * FLAGS.num_gpus)
 		# Calculate the gradients for each model tower.
@@ -469,7 +469,7 @@ def theirs_train():
 		
 		summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
 		
-		for step in xrange(FLAGS.max_steps):
+		for step in range(FLAGS.max_steps):
 			start_time = time.time()
 			_, loss_value = sess.run([train_op, loss])
 			duration = time.time() - start_time
@@ -511,10 +511,18 @@ def train(epoch):
 				initializer=tf.constant_initializer(0), trainable=False)
 		
 		global tensorboard_train_counter
-		batch_count = int(math.ceil(len(train_x) / _TOTAL_BATCH))
+		batch_count = int(math.ceil(len(train_x) / NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN))
+		
+		train_xs, train_ys = tf.train.batch(
+				[train_x, train_y],
+				NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN,
+				allow_smaller_final_batch=True,
+				name="batch_queue"
+		)
+		
 		
 		batch_queue = tf.contrib.slim.prefetch_queue.prefetch_queue(
-				[train_x, train_y], capacity=2 * FLAGS.num_gpus)
+				[train_xs, train_ys], capacity=2 * FLAGS.num_gpus)
 
 		for s in range(batch_count):
 			# batch_xs = train_x[s * _TOTAL_BATCH: (s + 1) * _TOTAL_BATCH]
