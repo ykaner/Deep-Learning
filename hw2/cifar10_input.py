@@ -34,22 +34,18 @@ NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = 10000
 
 def read_cifar10(filename_queue):
 	"""Reads and parses examples from CIFAR10 data files.
- 
+	
 	Recommendation: if you want N-way read parallelism, call this function
 	N times.  This will give you N independent Readers reading different
 	files & positions within those files, which will give better mixing of
 	examples.
- 
-	Args:
-	  filename_queue: A queue of strings with the filenames to read from.
-  
-	Returns:
-	  An object representing a single example, with the following fields:
+	
+	:param filename_queue: A queue of strings with the filenames to read from.
+	:returns: An object representing a single example, with the following fields:
 		height: number of rows in the result (32)
 		width: number of columns in the result (32)
 		depth: number of color channels in the result (3)
-		key: a scalar string Tensor describing the filename & record number
-		  for this example.
+		key: a scalar string Tensor describing the filename & record number for this example.
 		label: an int32 Tensor with the label in the range 0..9.
 		uint8image: a [height, width, depth] uint8 Tensor with the image data
 	"""

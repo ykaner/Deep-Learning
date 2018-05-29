@@ -38,9 +38,10 @@ import re
 import sys
 import tarfile
 
-import cifar10_input
 import tensorflow as tf
 from six.moves import urllib
+
+from . import cifar10_input
 
 FLAGS = tf.flags.FLAGS
 
@@ -368,8 +369,8 @@ def maybe_download_and_extract():
 	filepath = os.path.join(dest_directory, filename)
 	if not os.path.exists(filepath):
 		def _progress(count, block_size, total_size):
-			sys.stdout.write('\r>> Downloading %s %.1f%%' % (filename,
-			                                                 float(count * block_size) / float(total_size) * 100.0))
+			sys.stdout.write(
+				'\r>> Downloading %s %.1f%%' % (filename, float(count * block_size) / float(total_size) * 100.0))
 			sys.stdout.flush()
 		
 		filepath, _ = urllib.request.urlretrieve(DATA_URL, filepath, _progress)
