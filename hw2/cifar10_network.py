@@ -111,9 +111,9 @@ def average_gradients(tower_grads):
 			# TODO: remove this debug info
 			# ================== Start of debug info ==================
 			print(g)
-			if not cur_shape and g is not None:
-				cur_shape = g.shape
-			g = tf.zeros(cur_shape) if g is None else g
+			# if not cur_shape and g is not None:
+			# 	cur_shape = g.shape
+			# g = tf.zeros(cur_shape) if g is None else g
 			# ================== End of debug info ==================
 			
 			expanded_g = tf.expand_dims(g, 0)
@@ -596,7 +596,7 @@ def test_and_save(epoch):
 _NUM_CLASSES = 10
 
 # PARAMS
-NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 100
+NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 128
 _EPOCH = 5
 _NUM_GPUS = 4
 _TOTAL_BATCH = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
