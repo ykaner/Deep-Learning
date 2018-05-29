@@ -44,13 +44,13 @@ def pool_layer(input_tensor, ksize, strides, layer_name, padding="SAME"):
 def weight_variable(shape, stddev=0.1):
 	"""Create a weight variable with appropriate initialization."""
 	initial = tf.truncated_normal(shape, stddev=stddev)
-	return tf.Variable(initial)
+	return tf.get_variable(initial)
 
 
 def bias_variable(shape):
 	"""Create a bias variable with appropriate initialization."""
 	initial = tf.constant(0.1, shape=list(shape))
-	return tf.Variable(initial)
+	return tf.get_variable(initial)
 
 # def nn_layer(input_tensor, input_dim, output_dim, layer_name, act=tf.nn.relu):
 # 	"""Reusable code for making a simple neural net layer.
