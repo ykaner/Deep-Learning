@@ -34,6 +34,7 @@ tf.flags.DEFINE_integer('num_gpus', 1,
                         """How many GPUs to use.""")
 tf.flags.DEFINE_boolean('log_device_placement', False,
                         """Whether to log device placement.""")
+tf.flags.DEFINE_integer("epochs", 50, """How many epochs to run.""")
 
 tensorboard_train_counter = 0
 tensorboard_test_counter = 0
