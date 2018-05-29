@@ -41,16 +41,14 @@ def pool_layer(input_tensor, ksize, strides, layer_name, padding="SAME"):
 
 
 # We can't initialize these variables to 0 - the network will get stuck.
-def weight_variable(shape, stddev=0.1):
+def weight_variable(shape, stddev=0.1, name="weights"):
 	"""Create a weight variable with appropriate initialization."""
-	initial = tf.truncated_normal(shape, stddev=stddev)
-	return tf.get_variable(initial)
+	return tf.get_variable(name=name, shape=shape, initializer=tf.truncated_normal_initializer(stddev=stddev))
 
 
-def bias_variable(shape):
+def bias_variable(shape, name="bias"):
 	"""Create a bias variable with appropriate initialization."""
-	initial = tf.constant(0.1, shape=list(shape))
-	return tf.get_variable(initial)
+	return tf.get_variable(name=name, shape=shape, initializer=tf.constant_initializer(0.1))
 
 # def nn_layer(input_tensor, input_dim, output_dim, layer_name, act=tf.nn.relu):
 # 	"""Reusable code for making a simple neural net layer.
