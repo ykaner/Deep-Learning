@@ -514,23 +514,9 @@ def train(epoch):
 		global tensorboard_train_counter
 		batch_count = int(math.ceil(len(train_x) / NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN))
 		
-		images, labels = cifar10.inputs(eval_data=False)
-		
-		train_xs, train_ys = tf.train.batch(
-				[images, labels],
-				NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN,
-				allow_smaller_final_batch=True,
-				name="batch_queue"
-		)
-		
-		
-		batch_queue = tf.contrib.slim.prefetch_queue.prefetch_queue(
-				[train_xs, train_ys], capacity=2 * FLAGS.num_gpus)
-
 		for s in range(batch_count):
-			# batch_xs = train_x[s * _TOTAL_BATCH: (s + 1) * _TOTAL_BATCH]
-			# batch_ys = train_y[s * _TOTAL_BATCH: (s + 1) * _TOTAL_BATCH]
-			batch_xs, batch_ys = batch_queue.dequeue()
+			batch_xs = train_x[s * _TOTAL_BATCH: (s + 1) * _TOTAL_BATCH]
+			batch_ys = train_y[s * _TOTAL_BATCH: (s + 1) * _TOTAL_BATCH]
 			
 			start_time = time()
 			summery, _, batch_loss, batch_acc = sess.run(
@@ -561,14 +547,11 @@ def test_and_save(epoch):
 	
 	i = 0
 	predicted_class = np.zeros(shape=len(test_x), dtype=np.int)
-	batch_queue = tf.contrib.slim.prefetch_queue.prefetch_queue(
-			[train_x, train_y], capacity=3 * FLAGS.num_gpus)
 	while i < len(test_x):
 		# run_metadata = tf.RunMetadata()
 		j = min(i + _TOTAL_BATCH, len(test_x))
-		# batch_xs = test_x[i:j, :]
-		# batch_ys = test_y[i:j, :]
-		batch_xs, batch_ys = batch_queue.dequeue()
+		batch_xs = test_x[i:j, :]
+		batch_ys = test_y[i:j, :]
 		summary, predicted_class[i:j] = sess.run(
 				[merged, y_pred_cls],
 				feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1},
