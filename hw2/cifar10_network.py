@@ -110,7 +110,6 @@ def average_gradients(tower_grads):
 			# Append on a 'tower' dimension which we will average over below.
 			grads.append(expanded_g)
 		
-		print(grads)
 		# Average over the 'tower' dimension.
 		grad = tf.concat(axis=0, values=grads)
 		grad = tf.reduce_mean(grad, 0)
@@ -512,11 +511,15 @@ def train(epoch):
 				initializer=tf.constant_initializer(0), trainable=False)
 		
 		global tensorboard_train_counter
-		total_batch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
 		batch_count = int(math.ceil(len(train_x) / _TOTAL_BATCH))
+		
+		batch_queue = tf.contrib.slim.prefetch_queue.prefetch_queue(
+				[train_x, train_y], capacity=2 * FLAGS.num_gpus)
+
 		for s in range(batch_count):
-			batch_xs = train_x[s * _TOTAL_BATCH: (s + 1) * _TOTAL_BATCH]
-			batch_ys = train_y[s * _TOTAL_BATCH: (s + 1) * _TOTAL_BATCH]
+			# batch_xs = train_x[s * _TOTAL_BATCH: (s + 1) * _TOTAL_BATCH]
+			# batch_ys = train_y[s * _TOTAL_BATCH: (s + 1) * _TOTAL_BATCH]
+			batch_xs, batch_ys = batch_queue.dequeue()
 			
 			start_time = time()
 			summery, _, batch_loss, batch_acc = sess.run(
@@ -547,11 +550,14 @@ def test_and_save(epoch):
 	
 	i = 0
 	predicted_class = np.zeros(shape=len(test_x), dtype=np.int)
+	batch_queue = tf.contrib.slim.prefetch_queue.prefetch_queue(
+			[train_x, train_y], capacity=3 * FLAGS.num_gpus)
 	while i < len(test_x):
 		# run_metadata = tf.RunMetadata()
 		j = min(i + _TOTAL_BATCH, len(test_x))
-		batch_xs = test_x[i:j, :]
-		batch_ys = test_y[i:j, :]
+		# batch_xs = test_x[i:j, :]
+		# batch_ys = test_y[i:j, :]
+		batch_xs, batch_ys = batch_queue.dequeue()
 		summary, predicted_class[i:j] = sess.run(
 				[merged, y_pred_cls],
 				feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1},
@@ -671,7 +677,7 @@ def main(args=None):
 		print("\nEpoch: {0}/{1}\n".format((i + 1), _EPOCH))
 		start_time = time()
 		train(i)
-		print('epoch %d took: %d time' % (i, time() - start_time))
+		print('epoch %d took: %d seconds' % (i, time() - start_time))
 	
 	length = time() - start
 	print("{0} Epoches took {1}sec. avg of {2}sec per epoch".format(_EPOCH, length, length / _EPOCH))
