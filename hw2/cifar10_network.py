@@ -45,16 +45,6 @@ def pretty_time():
 	return str(datetime.now().replace(microsecond=0)).replace(':', '-')
 
 
-def weight_variable(shape):
-	initial = tf.truncated_normal(shape, stddev=0.1)
-	return tf.get_variable(initial)
-
-
-def bias_variable(shape):
-	initial = tf.constant(0.1, shape=shape)
-	return tf.get_variable(initial)
-
-
 def max_pool_2x2(x, name):
 	return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
 
