@@ -4,10 +4,10 @@ import tensorflow as tf
 def variable_summaries(var):
 	with tf.device('/cpu:0'):
 		"""Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
-		with tf.name_scope('summaries'):
+		with tf.variable_scope('summaries'):
 			mean = tf.reduce_mean(var)
 			tf.summary.scalar('mean', mean)
-			with tf.name_scope('stddev'):
+			with tf.variable_scope('stddev'):
 				stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
 			tf.summary.scalar('stddev', stddev)
 			tf.summary.scalar('max', tf.reduce_max(var))
@@ -16,15 +16,15 @@ def variable_summaries(var):
 
 
 def conv2d_layer(input_tensor, weights_shape, layer_name, strides=[1, 1, 1, 1], padding="SAME", act=tf.nn.relu):
-	with tf.name_scope(layer_name):
+	with tf.variable_scope(layer_name):
 		# This Variable will hold the state of the weights for the layer
-		with tf.name_scope('weights'):
+		with tf.variable_scope('weights'):
 			weights = weight_variable(weights_shape)
 			variable_summaries(weights)
-		with tf.name_scope('biases'):
+		with tf.variable_scope('biases'):
 			biases = bias_variable([weights_shape[-1]])
 			variable_summaries(biases)
-		with tf.name_scope('conv_plus_b'):
+		with tf.variable_scope('conv_plus_b'):
 			preactivate = tf.nn.conv2d(input_tensor, weights, strides=strides, padding=padding,
 			                           name="pre_activations") + biases
 			with tf.device('/cpu:0'):
@@ -36,7 +36,7 @@ def conv2d_layer(input_tensor, weights_shape, layer_name, strides=[1, 1, 1, 1], 
 
 
 def pool_layer(input_tensor, ksize, strides, layer_name, padding="SAME"):
-	with tf.name_scope(layer_name):
+	with tf.variable_scope(layer_name):
 		return tf.nn.max_pool_with_argmax(input_tensor, ksize=ksize, strides=strides, padding=padding, name='max_pool')
 
 
@@ -58,15 +58,15 @@ def bias_variable(shape, name='variable'):
 # 	and adds a number of summary ops.
 # 	"""
 # 	# Adding a name scope ensures logical grouping of the layers in the graph.
-# 	with tf.name_scope(layer_name):
+# 	with tf.variable_scope(layer_name):
 # 		# This Variable will hold the state of the weights for the layer
-# 		with tf.name_scope('weights'):
+# 		with tf.variable_scope('weights'):
 # 			weights = weight_variable([input_dim, output_dim])
 # 			variable_summaries(weights)
-# 		with tf.name_scope('biases'):
+# 		with tf.variable_scope('biases'):
 # 			biases = bias_variable([output_dim])
 # 			variable_summaries(biases)
-# 		with tf.name_scope('Wx_plus_b'):
+# 		with tf.variable_scope('Wx_plus_b'):
 # 			preactivate = tf.matmul(input_tensor, weights) + biases
 # 			tf.summary.histogram('pre_activations', preactivate)
 # 		activations = act(preactivate, name='activation')
@@ -76,7 +76,7 @@ def bias_variable(shape, name='variable'):
 
 # hidden1 = nn_layer(x, 784, 500, 'layer1')
 
-# with tf.name_scope('dropout'):
+# with tf.variable_scope('dropout'):
 # 	keep_prob = tf.placeholder(tf.float32)
 # 	tf.summary.scalar('dropout_keep_probability', keep_prob)
 # 	dropped = tf.nn.dropout(hidden1, keep_prob)
@@ -84,7 +84,7 @@ def bias_variable(shape, name='variable'):
 # # Do not apply softmax activation yet, see below.
 # y = nn_layer(dropped, 500, 10, 'layer2', act=tf.identity)
 
-# with tf.name_scope('cross_entropy'):
+# with tf.variable_scope('cross_entropy'):
 # 	The raw formulation of cross-entropy,
 #
 # 	tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(tf.softmax(y)),
@@ -94,19 +94,19 @@ def bias_variable(shape, name='variable'):
 #
 # 	So here we use tf.losses.sparse_softmax_cross_entropy on the
 # 	raw logit outputs of the nn_layer above.
-# 	with tf.name_scope('total'):
+# 	with tf.variable_scope('total'):
 # 		cross_entropy = tf.losses.sparse_softmax_cross_entropy(labels=y_, logits=y)
 
 # tf.summary.scalar('cross_entropy', cross_entropy)
 
-# with tf.name_scope('train'):
+# with tf.variable_scope('train'):
 # 	train_step = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(
 # 			cross_entropy)
 #
-# with tf.name_scope('accuracy'):
-# 	with tf.name_scope('correct_prediction'):
+# with tf.variable_scope('accuracy'):
+# 	with tf.variable_scope('correct_prediction'):
 # 		correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
-# 	with tf.name_scope('accuracy'):
+# 	with tf.variable_scope('accuracy'):
 # 		accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 # tf.summary.scalar('accuracy', accuracy)
 
