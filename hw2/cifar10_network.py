@@ -221,29 +221,29 @@ def model():
 		
 		correct_predictions = []
 		accuracies = []
-		with tf.variable_scope('input'):
+		with tf.name_scope('input'):
 			X = tf.placeholder(tf.float32, shape=[None, _IMAGE_SIZE * _IMAGE_SIZE * _IMAGE_CHANNELS], name='Input')
 			Y = tf.placeholder(tf.float32, shape=[None, _NUM_CLASSES], name='Output')
 		
-		with tf.variable_scope('input_reshape'):
+		with tf.name_scope('input_reshape'):
 			X_image = tf.reshape(X, [-1, _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS], name='images')
 		
 		tf.summary.image("intput", X_image, 10)
 		
-		with tf.variable_scope('dropout_parameter'):
+		with tf.name_scope('dropout_parameter'):
 			keep_prob = tf.placeholder(tf.float32, name="keep_prob")
 		
 		tf.summary.scalar('dropout_keep_probability', keep_prob)
 		
 		for i in range(_NUM_GPUS):
 			with tf.device('/gpu:{}'.format(i)):
-				with tf.variable_scope('%s_%d' % ('tower', i)) as scope:
+				with tf.name_scope('%s_%d' % ('tower', i)) as scope:
 					_x_image = X_image[i * NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN: (i + 1) * NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN]
 					_y = Y[i * NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN: (i + 1) * NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN]
 					
 					logits = ResNet(_x_image, keep_prob, reuse_vars)
 					
-					with tf.variable_scope('total'):
+					with tf.name_scope('total'):
 						y_pred_cls = tf.argmax(logits, axis=1, name="y_pred_cls")
 						
 						loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=_y),
@@ -258,7 +258,7 @@ def model():
 						tf.summary.scalar("accuracy", accuracy)
 						# tf.summary.scalar("correct_predictions", correct_prediction)
 					
-					with tf.variable_scope('train'):
+					with tf.name_scope('train'):
 						optimizer = tf.train.AdamOptimizer(1e-3, beta1=0.9, beta2=0.999, epsilon=1e-08,
 						                                   name="AdamOptimizer")
 						grads = optimizer.compute_gradients(loss)
@@ -408,7 +408,7 @@ def theirs_train():
 		with tf.variable_scope(tf.get_variable_scope()):
 			for i in range(FLAGS.num_gpus):
 				with tf.device('/gpu:%d' % i):
-					with tf.variable_scope('%s_%d' % (cifar10.TOWER_NAME, i)) as scope:
+					with tf.name_scope('%s_%d' % (cifar10.TOWER_NAME, i)) as scope:
 						# Dequeues one batch for the GPU
 						image_batch, label_batch = batch_queue.dequeue()
 						# Calculate the loss for one tower of the CIFAR model. This function
