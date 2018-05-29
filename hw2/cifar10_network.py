@@ -514,8 +514,10 @@ def train(epoch):
 		global tensorboard_train_counter
 		batch_count = int(math.ceil(len(train_x) / NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN))
 		
+		images, labels = cifar10.inputs()
+		
 		train_xs, train_ys = tf.train.batch(
-				[train_x, train_y],
+				[images, labels],
 				NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN,
 				allow_smaller_final_batch=True,
 				name="batch_queue"
