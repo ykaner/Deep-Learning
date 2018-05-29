@@ -103,18 +103,8 @@ def average_gradients(tower_grads):
 		#   ((grad0_gpu0, var0_gpu0), ... , (grad0_gpuN, var0_gpuN))
 		grads = []
 		
-		print('grad_and_vars: ')
-		print(grad_and_vars)
-		cur_shape = []
 		for g, _ in grad_and_vars:
 			# Add 0 dimension to the gradients to represent the tower.
-			# TODO: remove this debug info
-			# ================== Start of debug info ==================
-			print(g)
-			# if not cur_shape and g is not None:
-			# 	cur_shape = g.shape
-			# g = tf.zeros(cur_shape) if g is None else g
-			# ================== End of debug info ==================
 			
 			expanded_g = tf.expand_dims(g, 0)
 			# Append on a 'tower' dimension which we will average over below.
@@ -219,6 +209,7 @@ def model():
 		tower_grads = []
 		reuse_vars = False
 		
+		predictions = []
 		correct_predictions = []
 		accuracies = []
 		with tf.name_scope('input'):
@@ -246,6 +237,7 @@ def model():
 					with tf.name_scope('total'):
 						y_pred_cls = tf.argmax(logits, axis=1, name="y_pred_cls")
 						
+						predictions.append(y_pred_cls)
 						loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=_y),
 						                      name="loss")
 						correct_prediction = tf.equal(y_pred_cls, tf.argmax(_y, axis=1), name="correct_predictions")
@@ -269,10 +261,11 @@ def model():
 		avg_grads = average_gradients(tower_grads)
 		
 		correct_predictions = tf.concat(correct_predictions, axis=0)
+		predictions = tf.concat(predictions, axis=0)
 		accuracy = tf.reduce_mean(accuracies)
 		train_op = optimizer.apply_gradients(avg_grads)
 	
-	return X, Y, loss, train_op, correct_predictions, accuracy, y_pred_cls, keep_prob
+	return X, Y, loss, train_op, correct_predictions, accuracy, predictions, keep_prob
 
 
 def get_data_set(name="train"):
