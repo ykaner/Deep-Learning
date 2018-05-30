@@ -180,9 +180,9 @@ def ResNet(_x, keep_prob, reuse=False):
 		def conv3_2_act(out, name):
 			return tf.nn.relu(out + shortcut3_2, name)
 		
-		conv3_2 = utils.tensorboard.conv2d_layer(conv3_1, [3, 3, 64, 64], layer_name="conv_3_2", act=tf.nn.relu)
+		conv3_2 = utils.tensorboard.conv2d_layer(conv3_1, [1, 1, 64, 64], layer_name="conv_3_2", act=tf.nn.relu)
 		
-		conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [3, 3, 64, 64], layer_name="conv_3_3", act=conv3_2_act)
+		conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [1, 1, 64, 64], layer_name="conv_3_3", act=conv3_2_act)
 		
 		gap = tf.layers.average_pooling2d(conv3_3, [8, 8], [8, 8], padding='VALID', name='gap')
 		
