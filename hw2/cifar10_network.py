@@ -265,7 +265,7 @@ def model():
 		accuracy = tf.reduce_mean(accuracies)
 		train_op = optimizer.apply_gradients(avg_grads)
 	
-	return X, Y, loss, train_op, correct_predictions, accuracy, predictions, keep_prob
+	return X, Y, loss, train_op, correct_predictions, accuracy, predictions, avg_grads, keep_prob
 
 
 def get_data_set(name="train"):
@@ -417,17 +417,19 @@ def test_and_save(epoch):
 	
 	i = 0
 	predicted_class = np.zeros(shape=len(test_x), dtype=np.int)
+	avg_grads = []
 	while i < len(test_x):
 		# run_metadata = tf.RunMetadata()
 		j = min(i + _TOTAL_BATCH, len(test_x))
 		batch_xs = test_x[i:j, :]
 		batch_ys = test_y[i:j, :]
-		summary, predicted_class[i:j] = sess.run(
-				[merged, y_pred_cls],
+		summary, predicted_class[i:j], avg_grad = sess.run(
+				[merged, y_pred_cls, avg_grads],
 				feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1},
 				options=run_options  # ,
 				# run_metadata=run_metadata
 		)
+		avg_grads.append(avg_grad)
 		# test_writer.add_run_metadata(run_metadata, "epoch{}:step{}".format(epoch, i))
 		i = j
 	
@@ -468,7 +470,7 @@ _TOTAL_BATCH = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
 
 train_x, train_y = get_data_set("train")
 test_x, test_y = get_data_set("test")
-x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, keep_prob = model()
+x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, avg_grads, keep_prob = model()
 global_accuracy = 0
 
 
