@@ -155,22 +155,22 @@ def ResNet(_x, keep_prob, reuse=False):
 		
 		shortcut2_2 = conv2_1
 		
-		# def conv2_2_act(out, name):
-		# 	return tf.nn.relu(out + shortcut2_2, name)
-		#
-		# conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", act=tf.nn.relu)
-		#
-		# conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", act=conv2_2_act)
-		#
-		# pool2 = conv2_3  # max_pool_2x2(conv2_3, name="pool2")
+		def conv2_2_act(out, name):
+			return tf.nn.relu(out + shortcut2_2, name)
+
+		conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", act=tf.nn.relu)
+
+		conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", act=conv2_2_act)
+
+		pool2 = conv2_3  # max_pool_2x2(conv2_3, name="pool2")
 		
-		shortcut3 = utils.tensorboard.conv2d_layer(conv2_1, [1, 1, 32, 64], layer_name="shortcut3", strides=[1, 2, 2, 1],
+		shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", strides=[1, 2, 2, 1],
 		                                           act=identical)
 		
 		def conv3_act(out, name):
 			return tf.nn.relu(out + shortcut3, name)
 		
-		conv3 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1],
+		conv3 = utils.tensorboard.conv2d_layer(pool2, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1],
 		                                       act=tf.nn.relu)
 		
 		conv3_1 = utils.tensorboard.conv2d_layer(conv3, [3, 3, 64, 64], layer_name="conv_3_1", act=conv3_act)
@@ -180,9 +180,9 @@ def ResNet(_x, keep_prob, reuse=False):
 		def conv3_2_act(out, name):
 			return tf.nn.relu(out + shortcut3_2, name)
 		
-		conv3_2 = utils.tensorboard.conv2d_layer(conv3_1, [1, 1, 64, 64], layer_name="conv_3_2", act=tf.nn.relu)
+		conv3_2 = utils.tensorboard.conv2d_layer(conv3_1, [3, 3, 64, 64], layer_name="conv_3_2", act=tf.nn.relu)
 		
-		conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [1, 1, 64, 64], layer_name="conv_3_3", act=conv3_2_act)
+		conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [3, 3, 64, 64], layer_name="conv_3_3", act=conv3_2_act)
 		
 		gap = tf.layers.average_pooling2d(conv3_3, [8, 8], [8, 8], padding='VALID', name='gap')
 		
@@ -190,14 +190,14 @@ def ResNet(_x, keep_prob, reuse=False):
 		
 		flat = tf.reshape(gap, [-1, 64], name="flat")
 		
-		# with tf.variable_scope('fc_1'):
-		# 	fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=32, name="dense_layer"),
-		# 	                name="relu")  # , activation=tf.nn.relu)
-		# 	drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
-		#
-		# tf.summary.histogram("drop4", drop4)
+		with tf.variable_scope('fc_1'):
+			fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=32, name="dense_layer"),
+			                name="relu")  # , activation=tf.nn.relu)
+			drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
+
+		tf.summary.histogram("drop4", drop4)
 		
-		logits = tf.nn.softmax(tf.layers.dense(inputs=flat, units=_NUM_CLASSES), name="softmax")
+		logits = tf.nn.softmax(tf.layers.dense(inputs=drop4, units=_NUM_CLASSES), name="softmax")
 	
 	return logits
 
