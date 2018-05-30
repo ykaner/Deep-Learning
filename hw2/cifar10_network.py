@@ -396,7 +396,7 @@ def train(epoch):
 			train_writer.add_summary(summery, global_step=tensorboard_train_counter)
 			tensorboard_train_counter += 1
 			
-			if s % 10 == 0:
+			if s % 20 == 0:
 				percentage = int(round((s / batch_count) * 100))
 				msg = "Epoch {}: step: {} , batch_acc = {} , batch loss = {}"
 				print(msg.format(epoch, s, batch_acc, batch_loss))
