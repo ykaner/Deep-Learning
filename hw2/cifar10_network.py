@@ -512,7 +512,7 @@ def train(epoch):
 				initializer=tf.constant_initializer(0), trainable=False)
 		
 		global tensorboard_train_counter
-		batch_count = int(math.ceil(len(train_x) / NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN))
+		batch_count = int(math.ceil(len(train_x) / _TOTAL_BATCH))
 		
 		for s in range(batch_count):
 			batch_xs = train_x[s * _TOTAL_BATCH: (s + 1) * _TOTAL_BATCH]
