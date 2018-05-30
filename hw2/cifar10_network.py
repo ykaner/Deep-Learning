@@ -431,8 +431,6 @@ def test_and_save(epoch):
 		# test_writer.add_run_metadata(run_metadata, "epoch{}:step{}".format(epoch, i))
 		i = j
 	
-	print('predicted class:')
-	print(predicted_class)
 	correct = (np.argmax(test_y, axis=1) == predicted_class)
 	acc = correct.mean() * 100
 	correct_numbers = correct.sum()
