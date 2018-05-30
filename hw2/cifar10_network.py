@@ -155,22 +155,22 @@ def ResNet(_x, keep_prob, reuse=False):
 		
 		shortcut2_2 = conv2_1
 		
-		def conv2_2_act(out, name):
-			return tf.nn.relu(out + shortcut2_2, name)
+		# def conv2_2_act(out, name):
+		# 	return tf.nn.relu(out + shortcut2_2, name)
+		#
+		# conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", act=tf.nn.relu)
+		#
+		# conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", act=conv2_2_act)
+		#
+		# pool2 = conv2_3  # max_pool_2x2(conv2_3, name="pool2")
 		
-		conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", act=tf.nn.relu)
-		
-		conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", act=conv2_2_act)
-		
-		pool2 = conv2_3  # max_pool_2x2(conv2_3, name="pool2")
-		
-		shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", strides=[1, 2, 2, 1],
+		shortcut3 = utils.tensorboard.conv2d_layer(conv2_1, [1, 1, 32, 64], layer_name="shortcut3", strides=[1, 2, 2, 1],
 		                                           act=identical)
 		
 		def conv3_act(out, name):
 			return tf.nn.relu(out + shortcut3, name)
 		
-		conv3 = utils.tensorboard.conv2d_layer(pool2, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1],
+		conv3 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1],
 		                                       act=tf.nn.relu)
 		
 		conv3_1 = utils.tensorboard.conv2d_layer(conv3, [3, 3, 64, 64], layer_name="conv_3_1", act=conv3_act)
@@ -417,19 +417,17 @@ def test_and_save(epoch):
 	
 	i = 0
 	predicted_class = np.zeros(shape=len(test_x), dtype=np.int)
-	avg_grads = []
 	while i < len(test_x):
 		# run_metadata = tf.RunMetadata()
 		j = min(i + _TOTAL_BATCH, len(test_x))
 		batch_xs = test_x[i:j, :]
 		batch_ys = test_y[i:j, :]
-		summary, predicted_class[i:j], avg_grad = sess.run(
-				[merged, y_pred_cls, avg_grads],
+		summary, predicted_class[i:j] = sess.run(
+				[merged, y_pred_cls],
 				feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1},
 				options=run_options  # ,
 				# run_metadata=run_metadata
 		)
-		avg_grads.append(avg_grad)
 		# test_writer.add_run_metadata(run_metadata, "epoch{}:step{}".format(epoch, i))
 		i = j
 	
