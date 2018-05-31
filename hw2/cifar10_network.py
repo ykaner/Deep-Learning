@@ -159,11 +159,11 @@ def ResNet(_x, keep_prob, reuse=False):
 		
 		def conv2_2_act(out, name):
 			return tf.nn.relu(out + shortcut2_2, name)
-		
+
 		conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", act=tf.nn.relu)
-		
+
 		conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", act=conv2_2_act)
-		
+
 		pool2 = conv2_3  # max_pool_2x2(conv2_3, name="pool2")
 		
 		shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", strides=[1, 2, 2, 1],
@@ -192,14 +192,15 @@ def ResNet(_x, keep_prob, reuse=False):
 		
 		flat = tf.reshape(gap, [-1, 64], name="flat")
 		
-		# with tf.variable_scope('fc_1'):
-		# 	fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=32, name="dense_layer"),
-		# 	                name="relu")  # , activation=tf.nn.relu)
-		# 	drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
-		#
-		# tf.summary.histogram("drop4", drop4)
+		with tf.variable_scope('fc_1'):
+			fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=32, name="dense_layer"),
+			                name="relu")  # , activation=tf.nn.relu)
+			drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
+
+		with tf.device('cpu:0'):
+			tf.summary.histogram("drop4", drop4)
 		
-		logits = tf.nn.softmax(tf.layers.dense(inputs=flat, units=_NUM_CLASSES), name="softmax")
+		logits = tf.nn.softmax(tf.layers.dense(inputs=drop4, units=_NUM_CLASSES), name="softmax")
 	
 	return logits
 
@@ -267,7 +268,7 @@ def model():
 		accuracy = tf.reduce_mean(accuracies)
 		train_op = optimizer.apply_gradients(avg_grads)
 	
-	return X, Y, loss, train_op, correct_predictions, accuracy, predictions, keep_prob
+	return X, Y, loss, train_op, correct_predictions, accuracy, predictions, avg_grads, keep_prob
 
 
 def get_data_set(name="train"):
@@ -369,136 +370,6 @@ def maybe_download_and_extract():
 		os.remove(zip_cifar_10)
 
 
-def theirs_train():
-	"""Train CIFAR-10 for a number of steps."""
-	with tf.Graph().as_default(), tf.device('/cpu:0'):
-		# Create a variable to count the number of train() calls. This equals the
-		# number of batches processed * FLAGS.num_gpus.
-		global_step = tf.get_variable(
-				'global_step', [],
-				initializer=tf.constant_initializer(0), trainable=False)
-		
-		# Calculate the learning rate schedule.
-		num_batches_per_epoch = (cifar10.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN /
-		                         FLAGS.batch_size)
-		
-		# decay_steps = int(num_batches_per_epoch * cifar10.NUM_EPOCHS_PER_DECAY)
-		
-		# Decay the learning rate exponentially based on the number of steps.
-		# lr = tf.train.exponential_decay(cifar10.INITIAL_LEARNING_RATE,
-		#                                 global_step,
-		#                                 decay_steps,
-		#                                 cifar10.LEARNING_RATE_DECAY_FACTOR,
-		#                                 staircase=True)
-		
-		# Create an optimizer that performs gradient descent.
-		# opt = tf.train.GradientDescentOptimizer(lr)
-		
-		# Get images and labels for CIFAR-10.
-		images, labels = cifar10.distorted_inputs()
-		batch_queue = tf.contrib.slim.prefetch_queue.prefetch_queue(
-				[images, labels], capacity=3 * FLAGS.num_gpus)
-		# Calculate the gradients for each model tower.
-		tower_grads = []
-		with tf.variable_scope(tf.get_variable_scope()):
-			for i in range(FLAGS.num_gpus):
-				with tf.device('/gpu:%d' % i):
-					with tf.name_scope('%s_%d' % (cifar10.TOWER_NAME, i)) as scope:
-						# Dequeues one batch for the GPU
-						image_batch, label_batch = batch_queue.dequeue()
-						# Calculate the loss for one tower of the CIFAR model. This function
-						# constructs the entire CIFAR model but shares the variables across
-						# all towers.
-						loss = tower_loss(scope, image_batch, label_batch)
-						
-						# Reuse variables for the next tower.
-						tf.get_variable_scope().reuse_variables()
-						
-						# Retain the summaries from the final tower.
-						summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)
-						
-						# Calculate the gradients for the batch of data on this CIFAR tower.
-						grads = opt.compute_gradients(loss)
-						
-						# Keep track of the gradients across all towers.
-						tower_grads.append(grads)
-		
-		# We must calculate the mean of each gradient. Note that this is the
-		# synchronization point across all towers.
-		grads = average_gradients(tower_grads)
-		
-		# Add a summary to track the learning rate.
-		summaries.append(tf.summary.scalar('learning_rate', lr))
-		
-		# Add histograms for gradients.
-		for grad, var in grads:
-			if grad is not None:
-				summaries.append(tf.summary.histogram(var.op.name + '/gradients', grad))
-		
-		# Apply the gradients to adjust the shared variables.
-		apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
-		
-		# Add histograms for trainable variables.
-		for var in tf.trainable_variables():
-			summaries.append(tf.summary.histogram(var.op.name, var))
-		
-		# Track the moving averages of all trainable variables.
-		variable_averages = tf.train.ExponentialMovingAverage(
-				cifar10.MOVING_AVERAGE_DECAY, global_step)
-		variables_averages_op = variable_averages.apply(tf.trainable_variables())
-		
-		# Group all updates to into a single train op.
-		train_op = tf.group(apply_gradient_op, variables_averages_op)
-		
-		# Create a saver.
-		saver = tf.train.Saver(tf.global_variables())
-		
-		# Build the summary operation from the last tower summaries.
-		summary_op = tf.summary.merge(summaries)
-		
-		# Build an initialization operation to run below.
-		init = tf.global_variables_initializer()
-		
-		# Start running operations on the Graph. allow_soft_placement must be set to
-		# True to build towers on GPU, as some of the ops do not have GPU
-		# implementations.
-		sess = tf.Session(config=tf.ConfigProto(
-				allow_soft_placement=True,
-				log_device_placement=FLAGS.log_device_placement))
-		sess.run(init)
-		
-		# Start the queue runners.
-		tf.train.start_queue_runners(sess=sess)
-		
-		summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
-		
-		for step in range(FLAGS.max_steps):
-			start_time = time.time()
-			_, loss_value = sess.run([train_op, loss])
-			duration = time.time() - start_time
-			
-			assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
-			
-			if step % 10 == 0:
-				num_examples_per_step = FLAGS.batch_size * FLAGS.num_gpus
-				examples_per_sec = num_examples_per_step / duration
-				sec_per_batch = duration / FLAGS.num_gpus
-				
-				format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f '
-				              'sec/batch)')
-				print(format_str % (datetime.now(), step, loss_value,
-				                    examples_per_sec, sec_per_batch))
-			
-			if step % 100 == 0:
-				summary_str = sess.run(summary_op)
-				summary_writer.add_summary(summary_str, step)
-			
-			# Save the model checkpoint periodically.
-			if step % 1000 == 0 or (step + 1) == FLAGS.max_steps:
-				checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
-				saver.save(sess, checkpoint_path, global_step=step)
-
-
 def train(epoch):
 	"""
 	Train the network.
@@ -528,7 +399,7 @@ def train(epoch):
 			train_writer.add_summary(summery, global_step=tensorboard_train_counter)
 			tensorboard_train_counter += 1
 			
-			if s % 10 == 0:
+			if s % 20 == 0:
 				percentage = int(round((s / batch_count) * 100))
 				msg = "Epoch {}: step: {} , batch_acc = {} , batch loss = {}"
 				print(msg.format(epoch, s, batch_acc, batch_loss))
@@ -598,7 +469,7 @@ _TOTAL_BATCH = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
 
 train_x, train_y = get_data_set("train")
 test_x, test_y = get_data_set("test")
-x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, keep_prob = model()
+x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, avg_grads, keep_prob = model()
 global_accuracy = 0
 
 
