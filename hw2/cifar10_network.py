@@ -38,7 +38,9 @@ tf.flags.DEFINE_integer("epochs", 50, """How many epochs to run.""")
 tensorboard_train_counter = 0
 tensorboard_test_counter = 0
 
-sess = tf.Session()
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+sess = tf.Session(config=config)
 
 
 def pretty_time():
