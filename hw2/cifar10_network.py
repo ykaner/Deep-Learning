@@ -16,7 +16,6 @@ import numpy as np
 import tensorflow as tf
 
 import utils.tensorboard
-from . import cifar10
 
 if os.name is "nt":
 	tmp_path = "C:/tmp/"
@@ -52,6 +51,7 @@ def max_pool_2x2(x, name):
 
 def avg_pool_2x2(x, name):
 	return tf.nn.avg_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
+
 
 #
 # def tower_loss(scope, images, labels):
@@ -124,65 +124,79 @@ def average_gradients(tower_grads):
 	return average_grads
 
 
-def ResNet(_x, keep_prob, reuse=False):
+def ResNet(_x, keep_prob, is_train=False, reuse=False):
 	with tf.variable_scope('ResNet', reuse=reuse):
-		conv0 = utils.tensorboard.conv2d_layer(_x, [3, 3, 3, 16], layer_name="conv_0")
+		def no_act(val, name=''):
+			return val
+		
+		conv0 = utils.tensorboard.conv2d_layer(_x, [3, 3, 3, 16], layer_name="conv_0", batch_n=False, is_train=is_train)
 		
 		def conv1_act(out, name):
 			return tf.nn.relu(out + conv0, name)
 		
-		conv1 = utils.tensorboard.conv2d_layer(conv0, [3, 3, 16, 16], layer_name="conv_1", act=tf.nn.relu)
+		conv1 = utils.tensorboard.conv2d_layer(conv0, [3, 3, 16, 16], layer_name="conv_1", batch_n=True,
+		                                       is_train=is_train, act=tf.nn.relu)
 		
-		conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", act=conv1_act)
+		conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", batch_n=True,
+		                                         is_train=is_train, act=conv1_act)
 		
 		# pool = max_pool_2x2(conv1_1, name="pool")
 		
-		drop = tf.nn.dropout(conv1_1, keep_prob, name="drop")
+		# drop = tf.nn.dropout(conv1_1, keep_prob, name="drop")
 		
-		def identical(val, name=''):
+		def no_act(val, name=''):
 			return val
 		
-		shortcut2 = utils.tensorboard.conv2d_layer(drop, [1, 1, 16, 32], layer_name="shortcut2", strides=[1, 2, 2, 1],
-		                                           act=identical)
+		shortcut2 = utils.tensorboard.conv2d_layer(conv1_1, [1, 1, 16, 32], layer_name="shortcut2",
+		                                           strides=[1, 2, 2, 1],
+		                                           act=no_act)
 		
 		def conv2_act(out, name):
 			return tf.nn.relu(out + shortcut2, name)
 		
-		conv2 = utils.tensorboard.conv2d_layer(drop, [3, 3, 16, 32], layer_name="conv_2", strides=[1, 2, 2, 1],
+		conv2 = utils.tensorboard.conv2d_layer(conv1_1, [3, 3, 16, 32], layer_name="conv_2", strides=[1, 2, 2, 1],
+		                                       batch_n=True, is_train=is_train,
 		                                       act=tf.nn.relu)
 		
-		conv2_1 = utils.tensorboard.conv2d_layer(conv2, [3, 3, 32, 32], layer_name="conv_2_1", act=conv2_act)
+		conv2_1 = utils.tensorboard.conv2d_layer(conv2, [3, 3, 32, 32], layer_name="conv_2_1", batch_n=True,
+		                                         is_train=is_train, act=conv2_act)
 		
 		shortcut2_2 = conv2_1
 		
 		def conv2_2_act(out, name):
 			return tf.nn.relu(out + shortcut2_2, name)
-
-		conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", act=tf.nn.relu)
-
-		conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", act=conv2_2_act)
-
+		
+		conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", batch_n=True,
+		                                         is_train=is_train, act=tf.nn.relu)
+		
+		conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", batch_n=True,
+		                                         is_train=is_train, act=conv2_2_act)
+		
 		pool2 = conv2_3  # max_pool_2x2(conv2_3, name="pool2")
 		
 		shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", strides=[1, 2, 2, 1],
-		                                           act=identical)
+		                                           act=no_act)
 		
 		def conv3_act(out, name):
 			return tf.nn.relu(out + shortcut3, name)
 		
 		conv3 = utils.tensorboard.conv2d_layer(pool2, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1],
+		                                       batch_n=True, is_train=is_train,
 		                                       act=tf.nn.relu)
 		
-		conv3_1 = utils.tensorboard.conv2d_layer(conv3, [3, 3, 64, 64], layer_name="conv_3_1", act=conv3_act)
+		conv3_1 = utils.tensorboard.conv2d_layer(conv3, [3, 3, 64, 64], layer_name="conv_3_1", batch_n=True,
+		                                         is_train=is_train, act=conv3_act)
 		
 		shortcut3_2 = conv3_1
 		
 		def conv3_2_act(out, name):
 			return tf.nn.relu(out + shortcut3_2, name)
 		
-		conv3_2 = utils.tensorboard.conv2d_layer(conv3_1, [3, 3, 64, 64], layer_name="conv_3_2", act=tf.nn.relu)
+		conv3_2 = utils.tensorboard.conv2d_layer(conv3_1, [3, 3, 64, 64], layer_name="conv_3_2", batch_n=True,
+		                                         is_train=is_train, act=tf.nn.relu)
 		
-		conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [3, 3, 64, 64], layer_name="conv_3_3", act=conv3_2_act)
+		conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [3, 3, 64, 64], layer_name="conv_3_3", batch_n=True,
+		                                         is_train=is_train, act=conv3_2_act)
 		
 		gap = tf.layers.average_pooling2d(conv3_3, [8, 8], [8, 8], padding='VALID', name='gap')
 		
@@ -194,7 +208,7 @@ def ResNet(_x, keep_prob, reuse=False):
 			fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=32, name="dense_layer"),
 			                name="relu")  # , activation=tf.nn.relu)
 			drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
-
+		
 		with tf.device('cpu:0'):
 			tf.summary.histogram("drop4", drop4)
 		
@@ -224,6 +238,7 @@ def model():
 		
 		with tf.name_scope('dropout_parameter'):
 			keep_prob = tf.placeholder(tf.float32, name="keep_prob")
+		is_train = tf.placeholder(tf.bool, name='is_training')
 		
 		tf.summary.scalar('dropout_keep_probability', keep_prob)
 		
@@ -233,7 +248,7 @@ def model():
 					_x_image = X_image[i * NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN: (i + 1) * NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN]
 					_y = Y[i * NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN: (i + 1) * NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN]
 					
-					logits = ResNet(_x_image, keep_prob, reuse_vars)
+					logits = ResNet(_x_image, keep_prob, is_train, reuse_vars)
 					
 					with tf.name_scope('total'):
 						y_pred_cls = tf.argmax(logits, axis=1, name="y_pred_cls")
@@ -249,7 +264,7 @@ def model():
 					with tf.device('/cpu:0'):
 						tf.summary.scalar("loss", loss)
 						tf.summary.scalar("accuracy", accuracy)
-						# tf.summary.scalar("correct_predictions", correct_prediction)
+					# tf.summary.scalar("correct_predictions", correct_prediction)
 					
 					with tf.name_scope('train'):
 						optimizer = tf.train.AdamOptimizer(1e-3, beta1=0.9, beta2=0.999, epsilon=1e-08,
@@ -264,9 +279,11 @@ def model():
 		correct_predictions = tf.concat(correct_predictions, axis=0)
 		predictions = tf.concat(predictions, axis=0)
 		accuracy = tf.reduce_mean(accuracies)
-		train_op = optimizer.apply_gradients(avg_grads)
+		update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+		with tf.control_dependencies(update_ops):
+			train_op = optimizer.apply_gradients(avg_grads)
 	
-	return X, Y, loss, train_op, correct_predictions, accuracy, predictions, avg_grads, keep_prob
+	return X, Y, loss, train_op, correct_predictions, accuracy, predictions, avg_grads, keep_prob, is_train
 
 
 def get_data_set(name="train"):
@@ -392,7 +409,7 @@ def train(epoch):
 			start_time = time()
 			summery, _, batch_loss, batch_acc = sess.run(
 					[merged, optimizer, loss, accuracy],
-					feed_dict={x: batch_xs, y: batch_ys, keep_prob: 0.5})
+					feed_dict={x: batch_xs, y: batch_ys, keep_prob: 0.5, is_train: True})
 			duration = time() - start_time
 			train_writer.add_summary(summery, global_step=tensorboard_train_counter)
 			tensorboard_train_counter += 1
@@ -425,7 +442,7 @@ def test_and_save(epoch):
 		batch_ys = test_y[i:j, :]
 		summary, predicted_class[i:j] = sess.run(
 				[merged, y_pred_cls],
-				feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1},
+				feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1, is_train: False},
 				options=run_options  # ,
 				# run_metadata=run_metadata
 		)
@@ -467,9 +484,8 @@ _TOTAL_BATCH = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
 
 train_x, train_y = get_data_set("train")
 test_x, test_y = get_data_set("test")
-x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, avg_grads, keep_prob = model()
+x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, avg_grads, keep_prob, is_train = model()
 global_accuracy = 0
-
 
 merged = tf.summary.merge_all()
 train_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/train', sess.graph)
@@ -500,8 +516,6 @@ def get_total_parameters():
 	print(total_parameters)
 	with open('total_parameters' + pretty_time() + '.txt', 'w') as f:
 		f.write(str(total_parameters))
-
-
 
 
 # input()

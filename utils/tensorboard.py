@@ -15,7 +15,9 @@ def variable_summaries(var):
 			tf.summary.histogram('histogram', var)
 
 
-def conv2d_layer(input_tensor, weights_shape, layer_name, strides=[1, 1, 1, 1], padding="SAME", act=tf.nn.relu):
+def conv2d_layer(input_tensor, weights_shape, layer_name, strides=None, padding="SAME", batch_n=True, is_train=True, act=tf.nn.relu):
+	if strides is None:
+		strides = [1, 1, 1, 1]
 	with tf.variable_scope(layer_name):
 		# This Variable will hold the state of the weights for the layer
 		with tf.variable_scope('weights'):
@@ -29,6 +31,9 @@ def conv2d_layer(input_tensor, weights_shape, layer_name, strides=[1, 1, 1, 1], 
 			                           name="pre_activations") + biases
 			with tf.device('/cpu:0'):
 				tf.summary.histogram('pre_activations', preactivate)
+		if batch_n:
+			with tf.variable_scope('batch_normalization'):
+				preactivate = tf.layers.batch_normalization(preactivate, training=is_train)
 		activations = act(preactivate, name='activation')
 		with tf.device('/cpu:0'):
 			tf.summary.histogram('activations', activations)
