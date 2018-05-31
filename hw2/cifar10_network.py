@@ -142,21 +142,26 @@ def ResNet(_x, keep_prob, is_train=False, reuse=False):
 		conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", batch_n=True,
 		                                         is_train=is_train, act=conv1_act)
 		
-		# pool = max_pool_2x2(conv1_1, name="pool")
+		def conv1_2_act(out, name):
+			return tf.nn.relu(out + conv1_1, name)
 		
-		# drop = tf.nn.dropout(conv1_1, keep_prob, name="drop")
+		conv1_2 = utils.tensorboard.conv2d_layer(conv1_1, [3, 3, 16, 16], layer_name="conv_1_2", batch_n=True,
+		                                       is_train=is_train, act=tf.nn.relu)
+		
+		conv1_3 = utils.tensorboard.conv2d_layer(conv1_2, [3, 3, 16, 16], layer_name="conv_1_3", batch_n=True,
+		                                         is_train=is_train, act=conv1_2_act)
 		
 		def no_act(val, name=''):
 			return val
 		
-		shortcut2 = utils.tensorboard.conv2d_layer(conv1_1, [1, 1, 16, 32], layer_name="shortcut2",
+		shortcut2 = utils.tensorboard.conv2d_layer(conv1_3, [1, 1, 16, 32], layer_name="shortcut2",
 		                                           strides=[1, 2, 2, 1],
 		                                           act=no_act)
 		
 		def conv2_act(out, name):
 			return tf.nn.relu(out + shortcut2, name)
 		
-		conv2 = utils.tensorboard.conv2d_layer(conv1_1, [3, 3, 16, 32], layer_name="conv_2", strides=[1, 2, 2, 1],
+		conv2 = utils.tensorboard.conv2d_layer(conv1_3, [3, 3, 16, 32], layer_name="conv_2", strides=[1, 2, 2, 1],
 		                                       batch_n=True, is_train=is_train,
 		                                       act=tf.nn.relu)
 		
