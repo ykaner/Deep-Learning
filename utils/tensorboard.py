@@ -33,7 +33,7 @@ def conv2d_layer(input_tensor, weights_shape, layer_name, strides=None, padding=
 				tf.summary.histogram('pre_activations', preactivate)
 		if batch_n:
 			with tf.variable_scope('batch_normalization'):
-				preactivate = tf.contrib.layers.batch_norm(preactivate, training=is_train)
+				preactivate = tf.contrib.layers.batch_norm(preactivate, is_training=is_train)
 		activations = act(preactivate, name='activation')
 		with tf.device('/cpu:0'):
 			tf.summary.histogram('activations', activations)
