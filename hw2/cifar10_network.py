@@ -269,9 +269,11 @@ def model():
 					# tf.summary.scalar("correct_predictions", correct_prediction)
 					
 					with tf.name_scope('train'):
-						optimizer = tf.train.AdamOptimizer(1e-3, beta1=0.9, beta2=0.999, epsilon=1e-08,
+						optimizer = tf.train.AdamOptimizer(5e-4, beta1=0.9, beta2=0.999, epsilon=1e-08,
 						                                   name="AdamOptimizer")
-						grads = optimizer.compute_gradients(loss)
+						update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+						with tf.control_dependencies(update_ops):
+							grads = optimizer.compute_gradients(loss)
 						tower_grads.append(grads)
 					
 					reuse_vars = True
@@ -281,9 +283,7 @@ def model():
 		correct_predictions = tf.concat(correct_predictions, axis=0)
 		predictions = tf.concat(predictions, axis=0)
 		accuracy = tf.reduce_mean(accuracies)
-		update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-		with tf.control_dependencies(update_ops):
-			train_op = optimizer.apply_gradients(avg_grads)
+		train_op = optimizer.apply_gradients(avg_grads)
 	
 	return X, Y, loss, train_op, correct_predictions, accuracy, predictions, avg_grads, keep_prob, is_train
 
