@@ -195,7 +195,8 @@ def ResNet(_x, keep_prob, reuse=False):
 			                name="relu")  # , activation=tf.nn.relu)
 			drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
 
-		tf.summary.histogram("drop4", drop4)
+		with tf.device('cpu:0'):
+			tf.summary.histogram("drop4", drop4)
 		
 		logits = tf.nn.softmax(tf.layers.dense(inputs=drop4, units=_NUM_CLASSES), name="softmax")
 	
