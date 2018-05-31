@@ -266,7 +266,7 @@ def model():
 					with tf.device('/cpu:0'):
 						tf.summary.scalar("loss", loss)
 						tf.summary.scalar("accuracy", accuracy)
-					# tf.summary.scalar("correct_predictions", correct_prediction)
+						# tf.summary.scalar("correct_predictions", correct_prediction)
 					
 					with tf.name_scope('train'):
 						optimizer = tf.train.AdamOptimizer(5e-4, beta1=0.9, beta2=0.999, epsilon=1e-08,
@@ -444,10 +444,11 @@ def test_and_save(epoch):
 		batch_ys = test_y[i:j, :]
 		summary, predicted_class[i:j] = sess.run(
 				[merged, y_pred_cls],
-				feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1, is_train: False},
+				feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1, is_train: True},
 				options=run_options  # ,
 				# run_metadata=run_metadata
 		)
+		
 		# test_writer.add_run_metadata(run_metadata, "epoch{}:step{}".format(epoch, i))
 		i = j
 	
