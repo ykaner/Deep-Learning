@@ -286,9 +286,9 @@ def model():
 		correct_predictions = tf.concat(correct_predictions, axis=0)
 		predictions = tf.concat(predictions, axis=0)
 		accuracy = tf.reduce_mean(accuracies)
-		update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-		with tf.control_dependencies(update_ops):
-			train_op = optimizer.apply_gradients(avg_grads)
+		# update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+		# with tf.control_dependencies(update_ops):
+		train_op = optimizer.apply_gradients(avg_grads)
 	
 	return X, Y, loss, train_op, correct_predictions, accuracy, predictions, avg_grads, keep_prob, is_train
 
