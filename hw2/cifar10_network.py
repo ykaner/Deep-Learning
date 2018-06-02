@@ -449,7 +449,7 @@ def test_and_save(epoch):
 		batch_ys = test_y[i:j, :]
 		summary, predicted_class[i:j] = sess.run(
 				[merged, y_pred_cls],
-				feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1, is_train: True},
+				feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1, is_train: False},
 				options=run_options  # ,
 				# run_metadata=run_metadata
 		)
