@@ -342,8 +342,8 @@ def get_data_set(name="train", distortion=False):
 				for i in range(n_chuncks):
 					with open(cifar_10_distortion_file + str(i), 'rb') as f:
 						px, py = pickle.load(f)
-						x = np.concatenate([x, px]) if x else px
-						y = np.concatenate([y, py]) if y else py
+						x = np.concatenate([x, px]) if x is not None else px
+						y = np.concatenate([y, py]) if y is not None else py
 				
 				x = np.array(x)
 				y = np.array(y)
@@ -428,8 +428,8 @@ def get_data_set(name="train", distortion=False):
 				for i in range(n_chuncks):
 					with open(cifar_10_distortion_file + str(i), 'rb') as f:
 						px, py = pickle.load(f)
-						x = np.concatenate([x, px]) if x else px
-						y = np.concatenate([y, py]) if y else py
+						x = np.concatenate([x, px]) if x is not None else px
+						y = np.concatenate([y, py]) if y is not None else py
 						
 				x = np.array(x)
 				y = np.array(y)
