@@ -337,13 +337,13 @@ def get_data_set(name="train", distortion=False):
 				with open(cifar_10_distortion_directory + 'batches.meta', 'rb') as f:
 					n_chuncks = pickle.load(f)['n_chuncks']
 				
-				x = []
-				y = []
+				x = np.array([])
+				y = np.array([])
 				for i in range(n_chuncks):
 					with open(cifar_10_distortion_file + str(i), 'rb') as f:
 						px, py = pickle.load(f)
-						x = x + px
-						y = y + py
+						x = np.concatenate([x, px])
+						y = np.concatenate([y, py])
 				
 				x = np.array(x)
 				y = np.array(y)
@@ -423,16 +423,17 @@ def get_data_set(name="train", distortion=False):
 				with open(cifar_10_distortion_directory + 'batches.meta', 'rb') as f:
 					n_chuncks = pickle.load(f)['n_chuncks']
 				
-				x = []
-				y = []
+				x = np.array([])
+				y = np.array([])
 				for i in range(n_chuncks):
 					with open(cifar_10_distortion_file + str(i), 'rb') as f:
 						px, py = pickle.load(f)
-						x = x + px
-						y = y + py
+						x = np.concatenate([x, px])
+						y = np.concatenate([y, py])
 						
 				x = np.array(x)
 				y = np.array(y)
+				
 	
 	elif name is "test":
 		f = open(tmp_path + 'data_set/' + folder_name + '/test_batch', 'rb')
