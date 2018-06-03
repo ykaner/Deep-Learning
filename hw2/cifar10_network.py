@@ -225,8 +225,6 @@ def ResNet(_x, keep_prob, is_train=False, reuse=False):
 
 
 def model():
-	_IMAGE_SIZE = 32
-	_IMAGE_CHANNELS = 3
 	with tf.device('/cpu:0'):
 		tower_grads = []
 		reuse_vars = False
@@ -484,13 +482,41 @@ def test_and_save(epoch):
 # GLOBALS
 _NUM_CLASSES = 10
 
+_IMAGE_SIZE = 32
+_IMAGE_CHANNELS = 3
+
 # PARAMS
 _BATCH_SIZE = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 512
 _EPOCH = 5
 _NUM_GPUS = 4
 _TOTAL_BATCH = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
 
+
+def data_augmentation(data):
+	with tf.name_scope('data_augmentation'):
+		paddings = [[5, 5], [5, 5]]
+		reshaped_image = tf.pad(data, paddings, 'REFLECT')
+		
+		# Randomly crop a [height, width] section of the image.
+		distorted_image = tf.random_crop(reshaped_image, [_IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS])
+		
+		# Randomly flip the image horizontally.
+		distorted_image = tf.image.random_flip_left_right(distorted_image)
+		
+		# Because these operations are not commutative, consider randomizing
+		# the order their operation.
+		distorted_image = tf.image.random_brightness(distorted_image,
+		                                             max_delta=63)
+		distorted_image = tf.image.random_contrast(distorted_image,
+		                                           lower=0.2, upper=1.8)
+		
+		# Subtract off the mean and divide by the variance of the pixels.
+		return tf.image.per_image_standardization(distorted_image)
+
+
 train_x, train_y = get_data_set("train")
+train_x = data_augmentation(train_x)
+
 test_x, test_y = get_data_set("test")
 x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, avg_grads, keep_prob, is_train = model()
 global_accuracy = 0
