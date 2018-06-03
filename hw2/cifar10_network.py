@@ -335,7 +335,7 @@ def get_data_set(name="train", distortion=False):
 			def crop_image(img):
 				pad_size = 5
 				paddings = [[pad_size, pad_size], [pad_size, pad_size], [0, 0]]
-				np.pad(img, paddings, 'REFLECT')
+				img = np.pad(img, paddings, 'reflect')
 				startx = np.random.randint(pad_size * 2)
 				starty = np.random.randint(pad_size * 2)
 				return img[starty:starty + _IMAGE_SIZE, startx:startx + _IMAGE_SIZE]
