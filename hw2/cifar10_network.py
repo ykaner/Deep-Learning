@@ -335,7 +335,7 @@ def get_data_set(name="train", distortion=False):
 			this_time = True
 			if this_time:
 				with open(cifar_10_distortion_directory + 'batches.meta', 'rb') as f:
-					n_chuncks = pickle.load(f)
+					n_chuncks = pickle.load(f)['n_chuncks']
 				
 				x = []
 				y = []
@@ -421,7 +421,7 @@ def get_data_set(name="train", distortion=False):
 			else:
 				
 				with open(cifar_10_distortion_directory + 'batches.meta', 'rb') as f:
-					n_chuncks = pickle.load(f)
+					n_chuncks = pickle.load(f)['n_chuncks']
 				
 				x = []
 				y = []
