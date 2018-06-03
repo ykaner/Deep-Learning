@@ -328,6 +328,8 @@ def get_data_set(name="train", distortion=False):
 				y = np.concatenate((y, _Y), axis=0)
 		
 		if distortion:
+			x = np.reshape(x, [x.shape[0], _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS])
+			
 			flip_left_right = [np.flip(image, 1) for image in x]
 			
 			def crop_image(img):
@@ -341,10 +343,10 @@ def get_data_set(name="train", distortion=False):
 			crop = [crop_image(image) for image in x]
 			
 			def per_image_standardization(img):
-				img_flat = np.reshape(img, reduce((lambda a, b: a * b), img.shpae))
-				mean = np.mean(img_flat)
-				stddev = np.sum([np.power(xi - mean, 2.0) for xi in img_flat]) / len(img_flat)
-				adjusted_stddev = max(stddev, 1.0 / np.sqrt(len(img_flat)))
+				img_len = reduce(int.__mul__, img.shape)
+				mean = np.mean(img)
+				stddev = np.sum([np.power(xi - mean, 2.0) for xi in np.nditer(img.T)]) / img_len
+				adjusted_stddev = max(stddev, 1.0 / np.sqrt(img_len))
 				
 				return (img - mean) / adjusted_stddev
 			
