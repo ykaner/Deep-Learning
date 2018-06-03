@@ -238,13 +238,16 @@ def model():
 		
 		with tf.name_scope('input_reshape'):
 			X_image = tf.reshape(X, [-1, _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS], name='images')
-		
-		tf.summary.image("intput", X_image, 10)
-		
+			
 		with tf.name_scope('dropout_parameter'):
 			keep_prob = tf.placeholder(tf.float32, name="keep_prob")
 		is_train = tf.placeholder(tf.bool, name='is_training')
+
+		if is_train:
+			X_image = [data_augmentation(one_image) for one_image in X_image]
 		
+		tf.summary.image("intput", X_image, 10)
+
 		tf.summary.scalar('dropout_keep_probability', keep_prob)
 		
 		for i in range(_NUM_GPUS):
@@ -414,7 +417,7 @@ def train(epoch):
 			start_time = time()
 			summery, _, batch_loss, batch_acc = sess.run(
 					[merged, optimizer, loss, accuracy],
-					feed_dict={x: batch_xs, y: batch_ys, keep_prob: 0.5, is_train: True})
+					feed_dict={x: batch_xs, y: batch_ys, keep_prob: 0.7, is_train: True})
 			duration = time() - start_time
 			train_writer.add_summary(summery, global_step=tensorboard_train_counter)
 			tensorboard_train_counter += 1
@@ -494,8 +497,6 @@ _TOTAL_BATCH = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
 
 def data_augmentation(data):
 	with tf.name_scope('data_augmentation'):
-		d_shape = tf.shape(data)
-		data = tf.reshape(data, [d_shape[0], _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS])
 		paddings = [[0, 0], [5, 5], [5, 5], [0, 0]]
 		reshaped_image = tf.pad(data, paddings, 'REFLECT')
 		
@@ -513,11 +514,10 @@ def data_augmentation(data):
 		                                           lower=0.2, upper=1.8)
 		
 		# Subtract off the mean and divide by the variance of the pixels.
-		return tf.reshape(tf.image.per_image_standardization(distorted_image), d_shape)
+		return tf.image.per_image_standardization(distorted_image)
 
 
 train_x, train_y = get_data_set("train")
-train_x = data_augmentation(train_x)
 
 test_x, test_y = get_data_set("test")
 x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, avg_grads, keep_prob, is_train = model()
