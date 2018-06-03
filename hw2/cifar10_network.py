@@ -17,6 +17,9 @@ import tensorflow as tf
 
 import utils.tensorboard
 
+from functools import reduce
+
+
 if os.name is "nt":
 	tmp_path = "C:/tmp/"
 else:
@@ -243,8 +246,6 @@ def model():
 			keep_prob = tf.placeholder(tf.float32, name="keep_prob")
 		is_train = tf.placeholder(tf.bool, name='is_training')
 		
-		X_image = tf.cond(is_train, lambda: [data_augmentation(one_image) for one_image in X_image], lambda: X_image)
-		
 		tf.summary.image("intput", X_image, 10)
 		
 		tf.summary.scalar('dropout_keep_probability', keep_prob)
@@ -294,7 +295,7 @@ def model():
 	return X, Y, loss, train_op, correct_predictions, accuracy, predictions, avg_grads, keep_prob, is_train
 
 
-def get_data_set(name="train"):
+def get_data_set(name="train", distortion=False):
 	x = None
 	y = None
 	
@@ -325,7 +326,38 @@ def get_data_set(name="train"):
 			else:
 				x = np.concatenate((x, _X), axis=0)
 				y = np.concatenate((y, _Y), axis=0)
-	
+		
+		if distortion:
+			flip_left_right = [np.flip(image, 1) for image in x]
+			
+			def crop_image(img):
+				pad_size = 5
+				paddings = [[pad_size, pad_size], [pad_size, pad_size], [0, 0]]
+				np.pad(img, paddings, 'REFLECT')
+				startx = np.random.randint(pad_size * 2)
+				starty = np.random.randint(pad_size * 2)
+				return img[starty:starty + _IMAGE_SIZE, startx:startx + _IMAGE_SIZE]
+			
+			crop = [crop_image(image) for image in x]
+			
+			def per_image_standardization(img):
+				img_flat = np.reshape(img, reduce((lambda a, b: a * b), img.shpae))
+				mean = np.mean(img_flat)
+				stddev = np.sum([np.power(xi - mean, 2.0) for xi in img_flat]) / len(img_flat)
+				adjusted_stddev = max(stddev, 1.0 / np.sqrt(len(img_flat)))
+				
+				return (img - mean) / adjusted_stddev
+			
+			image_standardization = [per_image_standardization(image) for image in x]
+			
+			x = np.concatenate((x, flip_left_right, crop, image_standardization), axis=0)
+			y = np.concatenate([y] * 4, axis=0)
+			
+			idx = np.arange(len(x))
+			np.random.shuffle(idx)
+			x = x[idx]
+			y = y[idx]
+			
 	elif name is "test":
 		f = open(tmp_path + 'data_set/' + folder_name + '/test_batch', 'rb')
 		datadict = pickle.load(f, encoding="latin1")
@@ -495,29 +527,7 @@ _NUM_GPUS = 4
 _TOTAL_BATCH = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
 
 
-def data_augmentation(data):
-	with tf.name_scope('data_augmentation'):
-		paddings = [[5, 5], [5, 5], [0, 0]]
-		reshaped_image = tf.pad(data, paddings, 'REFLECT')
-		
-		# Randomly crop a [height, width] section of the image.
-		distorted_image = tf.random_crop(reshaped_image, [_IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS])
-		
-		# Randomly flip the image horizontally.
-		distorted_image = tf.image.random_flip_left_right(distorted_image)
-		
-		# Because these operations are not commutative, consider randomizing
-		# the order their operation.
-		distorted_image = tf.image.random_brightness(distorted_image,
-		                                             max_delta=63)
-		distorted_image = tf.image.random_contrast(distorted_image,
-		                                           lower=0.2, upper=1.8)
-		
-		# Subtract off the mean and divide by the variance of the pixels.
-		return tf.image.per_image_standardization(distorted_image)
-
-
-train_x, train_y = get_data_set("train")
+train_x, train_y = get_data_set("train", distortion=True)
 
 test_x, test_y = get_data_set("test")
 x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, avg_grads, keep_prob, is_train = model()
