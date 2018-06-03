@@ -9,6 +9,7 @@ import sys
 import tarfile
 import zipfile
 from datetime import datetime
+from functools import reduce
 from time import time
 from urllib.request import urlretrieve
 
@@ -16,9 +17,6 @@ import numpy as np
 import tensorflow as tf
 
 import utils.tensorboard
-
-from functools import reduce
-
 
 if os.name is "nt":
 	tmp_path = "C:/tmp/"
@@ -275,9 +273,9 @@ def model():
 					# tf.summary.scalar("correct_predictions", correct_prediction)
 					
 					with tf.name_scope('train'):
-						# optimizer = tf.train.AdamOptimizer(5e-4, beta1=0.9, beta2=0.999, epsilon=1e-08,
-						#                                    name="AdamOptimizer")
-						optimizer = tf.train.AdadeltaOptimizer(5e-4)
+						optimizer = tf.train.AdamOptimizer(5e-4, beta1=0.9, beta2=0.999, epsilon=1e-08,
+						                                   name="AdamOptimizer")
+						# optimizer = tf.train.AdadeltaOptimizer(5e-4)
 						grads = optimizer.compute_gradients(loss)
 						tower_grads.append(grads)
 					
@@ -328,38 +326,53 @@ def get_data_set(name="train", distortion=False):
 				y = np.concatenate((y, _Y), axis=0)
 		
 		if distortion:
-			x = np.reshape(x, [x.shape[0], _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS])
-			
-			flip_left_right = [np.flip(image, 1) for image in x]
-			
-			def crop_image(img):
-				pad_size = 5
-				paddings = [[pad_size, pad_size], [pad_size, pad_size], [0, 0]]
-				img = np.pad(img, paddings, 'reflect')
-				startx = np.random.randint(pad_size * 2)
-				starty = np.random.randint(pad_size * 2)
-				return img[starty:starty + _IMAGE_SIZE, startx:startx + _IMAGE_SIZE]
-			
-			crop = [crop_image(image) for image in x]
-			
-			def per_image_standardization(img):
-				img_len = reduce(int.__mul__, img.shape)
-				mean = np.mean(img)
-				stddev = np.sum([np.power(xi - mean, 2.0) for xi in np.nditer(img.T)]) / img_len
-				adjusted_stddev = max(stddev, 1.0 / np.sqrt(img_len))
+			main_directory = tmp_path + "data_set/"
+			cifar_10_distortion_directory = main_directory + "cifar_10_distortion/"
+			cifar_10_distortion_file = cifar_10_distortion_directory + 'cifar_10_distorted.pckl'
+			if not os.path.exists(main_directory) or not os.path.exists(cifar_10_distortion_directory) \
+					or not os.path.exists(cifar_10_distortion_file):
+				os.makedirs(main_directory)
+				os.makedirs(cifar_10_distortion_directory)
 				
-				return (img - mean) / adjusted_stddev
+				x = np.reshape(x, [x.shape[0], _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS])
+				
+				flip_left_right = [np.flip(image, 1) for image in x]
+				
+				def crop_image(img):
+					pad_size = 5
+					paddings = [[pad_size, pad_size], [pad_size, pad_size], [0, 0]]
+					img = np.pad(img, paddings, 'reflect')
+					startx = np.random.randint(pad_size * 2)
+					starty = np.random.randint(pad_size * 2)
+					return img[starty:starty + _IMAGE_SIZE, startx:startx + _IMAGE_SIZE]
+				
+				crop = [crop_image(image) for image in x]
+				
+				def per_image_standardization(img):
+					img_len = reduce(int.__mul__, img.shape)
+					mean = np.mean(img)
+					stddev = np.sum([np.power(xi - mean, 2.0) for xi in np.nditer(img.T)]) / img_len
+					adjusted_stddev = max(stddev, 1.0 / np.sqrt(img_len))
+					
+					return (img - mean) / adjusted_stddev
+				
+				image_standardization = [per_image_standardization(image) for image in x]
+				
+				x = np.concatenate((x, flip_left_right, crop, image_standardization), axis=0)
+				y = np.concatenate([y] * 4, axis=0)
+				
+				idx = np.arange(len(x))
+				np.random.shuffle(idx)
+				x = x[idx]
+				y = y[idx]
+				
+				with open(cifar_10_distortion_file, 'wb') as f:
+					pickle.dump([x, y], f)
 			
-			image_standardization = [per_image_standardization(image) for image in x]
-			
-			x = np.concatenate((x, flip_left_right, crop, image_standardization), axis=0)
-			y = np.concatenate([y] * 4, axis=0)
-			
-			idx = np.arange(len(x))
-			np.random.shuffle(idx)
-			x = x[idx]
-			y = y[idx]
-			
+			else:
+				with open(cifar_10_distortion_file, 'rb') as f:
+					x, y = pickle.load(f)
+	
 	elif name is "test":
 		f = open(tmp_path + 'data_set/' + folder_name + '/test_batch', 'rb')
 		datadict = pickle.load(f, encoding="latin1")
@@ -527,7 +540,6 @@ _BATCH_SIZE = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 512
 _EPOCH = 5
 _NUM_GPUS = 4
 _TOTAL_BATCH = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
-
 
 train_x, train_y = get_data_set("train", distortion=True)
 
