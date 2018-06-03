@@ -274,8 +274,9 @@ def model():
 					# tf.summary.scalar("correct_predictions", correct_prediction)
 					
 					with tf.name_scope('train'):
-						optimizer = tf.train.AdamOptimizer(5e-4, beta1=0.9, beta2=0.999, epsilon=1e-08,
-						                                   name="AdamOptimizer")
+						# optimizer = tf.train.AdamOptimizer(5e-4, beta1=0.9, beta2=0.999, epsilon=1e-08,
+						#                                    name="AdamOptimizer")
+						optimizer = tf.train.AdadeltaOptimizer(5e-4)
 						grads = optimizer.compute_gradients(loss)
 						tower_grads.append(grads)
 					
