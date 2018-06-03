@@ -368,10 +368,11 @@ def get_data_set(name="train", distortion=False):
 				
 				data_len = len(x)
 				n_chuncks = 5 * 4
+				chunck_size = math.ceil(data_len / n_chuncks)
 				for i in range(n_chuncks):
 					with open(cifar_10_distortion_file + str(i), 'wb') as f:
-						pickle.dump([x[data_len / n_chuncks * i: data_len / n_chuncks * (i + 1)],
-						             y[data_len / n_chuncks * i: data_len / n_chuncks * (i + 1)]],
+						pickle.dump([x[chunck_size * i: chunck_size * (i + 1)],
+						             y[chunck_size * i: chunck_size * (i + 1)]],
 						            f)
 			
 				with open(cifar_10_distortion_directory + 'batches.meta', 'wb') as f:
