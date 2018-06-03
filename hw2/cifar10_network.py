@@ -494,7 +494,7 @@ _TOTAL_BATCH = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
 
 def data_augmentation(data):
 	with tf.name_scope('data_augmentation'):
-		paddings = [[5, 5], [5, 5]]
+		paddings = [[0, 0], [5, 5], [5, 5], [0, 0]]
 		reshaped_image = tf.pad(data, paddings, 'REFLECT')
 		
 		# Randomly crop a [height, width] section of the image.
