@@ -8,6 +8,7 @@ import pickle
 import sys
 import tarfile
 import zipfile
+from builtins import range
 from datetime import datetime
 from functools import reduce
 from time import time
@@ -329,7 +330,44 @@ def get_data_set(name="train", distortion=False):
 			main_directory = tmp_path + "data_set/"
 			cifar_10_distortion_directory = main_directory + "cifar_10_distortion/"
 			cifar_10_distortion_file = cifar_10_distortion_directory + 'data_batch_'
-			if not os.path.exists(cifar_10_distortion_directory) \
+			
+			# one time code
+			this_time = True
+			if this_time:
+				with open(cifar_10_distortion_directory + 'batches.meta', 'rb') as f:
+					n_chuncks = pickle.load(f)
+				
+				x = []
+				y = []
+				for i in range(n_chuncks):
+					with open(cifar_10_distortion_file + str(i), 'rb') as f:
+						px, py = pickle.load(f)
+						x = x + px
+						y = y + py
+				
+				x = np.array(x)
+				y = np.array(y)
+				
+				x = np.reshape(x, [x.shape[0], reduce(int.__mul__, x.shape[1:])])
+				
+				data_len = len(x)
+				n_chuncks = 4
+				chunck_size = math.ceil(data_len / n_chuncks)
+				for i in range(n_chuncks):
+					with open(cifar_10_distortion_file + str(i), 'wb') as f:
+						pickle.dump([x[chunck_size * i: chunck_size * (i + 1)],
+						             y[chunck_size * i: chunck_size * (i + 1)]],
+						            f)
+				
+				for i in range(n_chuncks, 20):
+					os.remove(cifar_10_distortion_file + str(i))
+				
+				with open(cifar_10_distortion_directory + 'batches.meta', 'wb') as f:
+					pickle.dump({'n_chuncks': n_chuncks}, f)
+			
+			# end one time code
+			
+			elif not os.path.exists(cifar_10_distortion_directory) \
 					or not os.path.exists(cifar_10_distortion_file + '0'):
 				if not os.path.exists(cifar_10_distortion_directory):
 					os.makedirs(cifar_10_distortion_directory)
@@ -361,13 +399,15 @@ def get_data_set(name="train", distortion=False):
 				x = np.concatenate((x, flip_left_right, crop, image_standardization), axis=0)
 				y = np.concatenate([y] * 4, axis=0)
 				
+				x = np.reshape(x, [x.shape[0], reduce(int.__mul__, x.shape[1:])])
+				
 				idx = np.arange(len(x))
 				np.random.shuffle(idx)
 				x = x[idx]
 				y = y[idx]
 				
 				data_len = len(x)
-				n_chuncks = 5 * 4
+				n_chuncks = 4
 				chunck_size = math.ceil(data_len / n_chuncks)
 				for i in range(n_chuncks):
 					with open(cifar_10_distortion_file + str(i), 'wb') as f:
