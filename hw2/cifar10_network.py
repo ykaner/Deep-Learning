@@ -329,9 +329,8 @@ def get_data_set(name="train", distortion=False):
 			main_directory = tmp_path + "data_set/"
 			cifar_10_distortion_directory = main_directory + "cifar_10_distortion/"
 			cifar_10_distortion_file = cifar_10_distortion_directory + 'cifar_10_distorted.pckl'
-			if not os.path.exists(main_directory) or not os.path.exists(cifar_10_distortion_directory) \
+			if not os.path.exists(cifar_10_distortion_directory) \
 					or not os.path.exists(cifar_10_distortion_file):
-				os.makedirs(main_directory)
 				os.makedirs(cifar_10_distortion_directory)
 				
 				x = np.reshape(x, [x.shape[0], _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS])
