@@ -494,6 +494,8 @@ _TOTAL_BATCH = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
 
 def data_augmentation(data):
 	with tf.name_scope('data_augmentation'):
+		d_shape = tf.shape(data)
+		data = tf.reshape(data, [d_shape[0], _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS])
 		paddings = [[0, 0], [5, 5], [5, 5], [0, 0]]
 		reshaped_image = tf.pad(data, paddings, 'REFLECT')
 		
@@ -511,7 +513,7 @@ def data_augmentation(data):
 		                                           lower=0.2, upper=1.8)
 		
 		# Subtract off the mean and divide by the variance of the pixels.
-		return tf.image.per_image_standardization(distorted_image)
+		return tf.reshape(tf.image.per_image_standardization(distorted_image), d_shape)
 
 
 train_x, train_y = get_data_set("train")
