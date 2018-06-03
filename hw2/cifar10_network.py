@@ -421,8 +421,8 @@ def train(epoch):
 			
 			if s % 20 == 0:
 				percentage = int(round((s / batch_count) * 100))
-				msg = "Epoch {}: step: {} , batch_acc = {} , batch loss = {}"
-				print(msg.format(epoch, s, batch_acc, batch_loss))
+				msg = "Epoch {epoch:04d}: step: {step:04d} , batch_acc = {acc:02.5f} , batch loss = {loss:02.5f}"
+				print(msg.format(epoch=epoch, step=s, acc=batch_acc, loss=batch_loss))
 		
 		test_and_save(epoch)
 
@@ -589,13 +589,13 @@ def main(args=None):
 	
 	start = time()
 	for i in range(_EPOCH):
-		print("\nEpoch: {0}/{1}\n".format((i + 1), _EPOCH))
+		print("\nEpoch: {0:03}/{1:03}\n".format((i + 1), _EPOCH))
 		start_time = time()
 		train(i)
-		print('epoch %d took: %d seconds' % (i, time() - start_time))
+		print('Epoch {epoch:04d} took: {sec:02.4f} seconds'.format(epoch=i, sec=(time() - start_time)))
 	
 	length = time() - start
-	print("{0} Epoches took {1}sec. avg of {2}sec per epoch".format(_EPOCH, length, length / _EPOCH))
+	print("{0} Epochs took {1}sec. avg of {2}sec per epoch".format(_EPOCH, length, length / _EPOCH))
 
 
 if __name__ == "__main__":
