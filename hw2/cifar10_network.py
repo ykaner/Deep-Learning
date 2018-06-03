@@ -146,7 +146,7 @@ def ResNet(_x, keep_prob, is_train=False, reuse=False):
 			return tf.nn.relu(out + conv1_1, name)
 		
 		conv1_2 = utils.tensorboard.conv2d_layer(conv1_1, [3, 3, 16, 16], layer_name="conv_1_2", batch_n=True,
-		                                       is_train=is_train, act=tf.nn.relu)
+		                                         is_train=is_train, act=tf.nn.relu)
 		
 		conv1_3 = utils.tensorboard.conv2d_layer(conv1_2, [3, 3, 16, 16], layer_name="conv_1_3", batch_n=True,
 		                                         is_train=is_train, act=conv1_2_act)
@@ -238,16 +238,16 @@ def model():
 		
 		with tf.name_scope('input_reshape'):
 			X_image = tf.reshape(X, [-1, _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS], name='images')
-			
+		
 		with tf.name_scope('dropout_parameter'):
 			keep_prob = tf.placeholder(tf.float32, name="keep_prob")
 		is_train = tf.placeholder(tf.bool, name='is_training')
-
-		if is_train:
+		
+		if is_train is not None and is_train == True:
 			X_image = [data_augmentation(one_image) for one_image in X_image]
 		
 		tf.summary.image("intput", X_image, 10)
-
+		
 		tf.summary.scalar('dropout_keep_probability', keep_prob)
 		
 		for i in range(_NUM_GPUS):
@@ -272,7 +272,7 @@ def model():
 					with tf.device('/cpu:0'):
 						tf.summary.scalar("loss", loss)
 						tf.summary.scalar("accuracy", accuracy)
-						# tf.summary.scalar("correct_predictions", correct_prediction)
+					# tf.summary.scalar("correct_predictions", correct_prediction)
 					
 					with tf.name_scope('train'):
 						optimizer = tf.train.AdamOptimizer(5e-4, beta1=0.9, beta2=0.999, epsilon=1e-08,
