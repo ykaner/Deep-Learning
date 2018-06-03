@@ -243,7 +243,7 @@ def model():
 			keep_prob = tf.placeholder(tf.float32, name="keep_prob")
 		is_train = tf.placeholder(tf.bool, name='is_training')
 		
-		X_image = tf.cond(is_train, lambda: [data_augmentation(one_image) for one_image in X_image], X_image)
+		X_image = tf.cond(is_train, lambda: [data_augmentation(one_image) for one_image in X_image], lambda: X_image)
 		
 		tf.summary.image("intput", X_image, 10)
 		
