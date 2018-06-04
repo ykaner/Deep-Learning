@@ -39,7 +39,7 @@ def conv2d_layer(input_tensor, weights_shape, layer_name, strides=None, padding=
 				gamma = tf.get_variable(name='gamma', shape=weights_shape[-1], initializer=tf.ones_initializer())
 				betta = tf.get_variable(name='betta', shape=weights_shape[-1], initializer=tf.zeros_initializer())
 				preactivate = tf.add(tf.multiply(z, gamma), betta)
-				# preactivate = tf.layers.batch_normalization(preactivate, training=is_train)
+			# preactivate = tf.layers.batch_normalization(preactivate, training=is_train)
 		activations = act(preactivate, name='activation')
 		with tf.device('/cpu:0'):
 			tf.summary.histogram('activations', activations)
@@ -54,7 +54,10 @@ def pool_layer(input_tensor, ksize, strides, layer_name, padding="SAME"):
 # We can't initialize these variables to 0 - the network will get stuck.
 def weight_variable(shape, stddev=0.1, name="weights"):
 	"""Create a weight variable with appropriate initialization."""
-	return tf.get_variable(name=name, shape=shape, initializer=tf.truncated_normal_initializer(stddev=stddev))
+	reg_betta = 0.0001
+	regularizer = tf.contrib.layers.l2_regularizer(reg_betta)
+	return tf.get_variable(name=name, shape=shape, initializer=tf.truncated_normal_initializer(stddev=stddev),
+	                       regularizer=regularizer)
 
 
 def bias_variable(shape, name='variable'):
