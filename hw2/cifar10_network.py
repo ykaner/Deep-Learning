@@ -471,6 +471,8 @@ def maybe_download_and_extract():
 		os.remove(zip_cifar_10)
 
 
+file_name_date = str(_EPOCH) + '_' + str(datetime.day) + str(datetime.month) + str(datetime.year) + '.txt'
+
 def train(epoch):
 	"""
 	Train the network.
@@ -513,6 +515,9 @@ def train(epoch):
 				percentage = int(round((s / batch_count) * 100))
 				msg = "Epoch {epoch:03d}: step: {step:03d} , batch_acc = {acc:02.5f} , batch loss = {loss:02.5f}"
 				print(msg.format(epoch=epoch, step=s, acc=batch_acc, loss=batch_loss))
+				
+				with open(file_name_date, 'w') as f:
+					f.writelines(msg.format(epoch=epoch, step=s, acc=batch_acc, loss=batch_loss))
 		
 		test_and_save(epoch)
 
@@ -562,7 +567,12 @@ def test_and_save(epoch):
 		if not os.path.exists(save_folder):
 			os.mkdir(save_folder)
 		saver.save(sess, os.path.join(save_folder, save_file))
-	
+		with open(os.path.join(save_folder, 'hyper_params'), 'rb') as f:
+			hyper_params = {
+				'epoch': epoch
+			}
+			pickle.dump(hyper_params, f)
+		
 	elif global_accuracy == 0:
 		global_accuracy = acc
 	
@@ -627,6 +637,7 @@ def main(args=None):
 	# 	tf.gfile.DeleteRecursively(tmp_path + "tensorboard/hw2")
 	# tf.gfile.MakeDirs(tmp_path + "tensorbaord/hw2")
 	
+	was_epochs = 0
 	# Setting the args
 	if args is not None:
 		if args.load:
@@ -636,6 +647,11 @@ def main(args=None):
 				print('files to read not found. starting from the begining. ')
 			else:
 				print('restoring last check point')
+				
+				with open('hyper_params', 'rb') as f:
+					hyper_params = pickle.load(f)
+				was_epochs = hyper_params['epoch']
+				
 				saver.restore(sess, os.path.join(read_file, 'save.ckpt'))
 				
 				save_folder = read_file
@@ -652,7 +668,7 @@ def main(args=None):
 	get_total_parameters()
 	
 	start = time()
-	for i in range(_EPOCH):
+	for i in range(was_epochs, _EPOCH):
 		print("\nEpoch: {0:03}/{1:03}\n".format((i + 1), _EPOCH))
 		start_time = time()
 		train(i)
