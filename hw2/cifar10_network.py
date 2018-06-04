@@ -244,6 +244,7 @@ def model():
 		with tf.name_scope('dropout_parameter'):
 			keep_prob = tf.placeholder(tf.float32, name="keep_prob")
 		is_train = tf.placeholder(tf.bool, name='is_training')
+		learning_rate = tf.placeholder(tf.float32, name='learning_rate')
 		
 		tf.summary.image("intput", X_image, 10)
 		
@@ -274,9 +275,13 @@ def model():
 					# tf.summary.scalar("correct_predictions", correct_prediction)
 					
 					with tf.name_scope('train'):
-						optimizer = tf.train.AdamOptimizer(5e-4, beta1=0.9, beta2=0.999, epsilon=1e-08,
-						                                   name="AdamOptimizer")
+						# optimizer = tf.train.AdamOptimizer(5e-4, beta1=0.9, beta2=0.999, epsilon=1e-08,
+						#                                    name="AdamOptimizer")
+						
 						# optimizer = tf.train.AdadeltaOptimizer(5e-4)
+						
+						optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=0.9,
+						                                       use_nesterov=True, name='MomentumOptimizer')
 						grads = optimizer.compute_gradients(loss)
 						tower_grads.append(grads)
 					
@@ -291,7 +296,7 @@ def model():
 		# with tf.control_dependencies(update_ops):
 		train_op = optimizer.apply_gradients(avg_grads)
 	
-	return X, Y, loss, train_op, correct_predictions, accuracy, predictions, avg_grads, keep_prob, is_train
+	return X, Y, loss, train_op, correct_predictions, accuracy, predictions, avg_grads, keep_prob, is_train, learning_rate
 
 
 def get_data_set(name="train", distortion=False):
@@ -330,7 +335,7 @@ def get_data_set(name="train", distortion=False):
 			main_directory = tmp_path + "data_set/"
 			cifar_10_distortion_directory = main_directory + "cifar_10_distortion/"
 			cifar_10_distortion_file = cifar_10_distortion_directory + 'data_batch_'
-						
+			
 			if not os.path.exists(cifar_10_distortion_directory) \
 					or not os.path.exists(cifar_10_distortion_file + '0'):
 				if not os.path.exists(cifar_10_distortion_directory):
@@ -378,7 +383,7 @@ def get_data_set(name="train", distortion=False):
 						pickle.dump([x[chunck_size * i: chunck_size * (i + 1)],
 						             y[chunck_size * i: chunck_size * (i + 1)]],
 						            f)
-			
+				
 				with open(cifar_10_distortion_directory + 'batches.meta', 'wb') as f:
 					pickle.dump({'n_chuncks': n_chuncks}, f)
 			
@@ -394,10 +399,10 @@ def get_data_set(name="train", distortion=False):
 						px, py = pickle.load(f)
 						x = np.concatenate([x, px]) if x is not None else px
 						y = np.concatenate([y, py]) if y is not None else py
-						
+				
 				x = np.array(x)
 				y = np.array(y)
-				
+	
 	
 	elif name is "test":
 		f = open(tmp_path + 'data_set/' + folder_name + '/test_batch', 'rb')
@@ -473,6 +478,15 @@ def train(epoch):
 	:param epoch: The current epoch
 	:type epoch: int
 	"""
+	
+	def lr_dict(ep):
+		if ep < 80:
+			return 0.1
+		elif ep < 120:
+			return 0.01
+		else:
+			return 0.001
+	
 	with tf.Graph().as_default(), tf.device('/cpu:0'):
 		# Create a variable to count the number of train() calls. This equals the
 		# number of batches processed * FLAGS.num_gpus.
@@ -490,14 +504,14 @@ def train(epoch):
 			start_time = time()
 			summery, _, batch_loss, batch_acc = sess.run(
 					[merged, optimizer, loss, accuracy],
-					feed_dict={x: batch_xs, y: batch_ys, keep_prob: 0.7, is_train: True})
+					feed_dict={x: batch_xs, y: batch_ys, keep_prob: 0.7, is_train: True, learning_rate: lr_dict(epoch)})
 			duration = time() - start_time
 			train_writer.add_summary(summery, global_step=tensorboard_train_counter)
 			tensorboard_train_counter += 1
 			
 			if s % 20 == 0:
 				percentage = int(round((s / batch_count) * 100))
-				msg = "Epoch {epoch:04d}: step: {step:04d} , batch_acc = {acc:02.5f} , batch loss = {loss:02.5f}"
+				msg = "Epoch {epoch:03d}: step: {step:03d} , batch_acc = {acc:02.5f} , batch loss = {loss:02.5f}"
 				print(msg.format(epoch=epoch, step=s, acc=batch_acc, loss=batch_loss))
 		
 		test_and_save(epoch)
@@ -570,7 +584,7 @@ _TOTAL_BATCH = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
 train_x, train_y = get_data_set("train", distortion=True)
 
 test_x, test_y = get_data_set("test")
-x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, avg_grads, keep_prob, is_train = model()
+x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, avg_grads, keep_prob, is_train, learning_rate = model()
 global_accuracy = 0
 
 merged = tf.summary.merge_all()
