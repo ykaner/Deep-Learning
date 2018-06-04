@@ -570,7 +570,7 @@ def test_and_save(epoch):
 				'epoch': epoch
 			}
 			pickle.dump(hyper_params, f)
-		
+	
 	elif global_accuracy == 0:
 		global_accuracy = acc
 	
@@ -599,7 +599,8 @@ merged = tf.summary.merge_all()
 train_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/train', sess.graph)
 test_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/test')
 
-file_name_date = str(_EPOCH) + '_' + str(datetime.now().day) + str(datetime.now().month) + str(datetime.now().year) + '.txt'
+file_name_date = str(_EPOCH) + '_' + str(datetime.now().day) + str(datetime.now().month) + str(
+	datetime.now().year) + '.txt'
 
 saver = tf.train.Saver()
 save_path = 'saves/'
@@ -659,7 +660,8 @@ def main(args=None):
 		_EPOCH = args.epochs
 		_NUM_GPUS = args.gpus
 		
-		file_name_date = str(_EPOCH) + '_' + str(datetime.day) + str(datetime.month) + str(datetime.year) + '.txt'
+		file_name_date = str(_EPOCH) + '_' + str(datetime.now().day) + str(datetime.now().month) + \
+		                 str(datetime.now().year) + '.txt'
 	else:
 		_EPOCH = 5
 		_NUM_GPUS = 4
