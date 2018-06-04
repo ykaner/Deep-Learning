@@ -565,7 +565,7 @@ def test_and_save(epoch):
 		if not os.path.exists(save_folder):
 			os.mkdir(save_folder)
 		saver.save(sess, os.path.join(save_folder, save_file))
-		with open(os.path.join(save_folder, 'hyper_params'), 'rb') as f:
+		with open(os.path.join(save_folder, 'hyper_params'), 'wb') as f:
 			hyper_params = {
 				'epoch': epoch
 			}
