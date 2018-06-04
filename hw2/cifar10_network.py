@@ -471,8 +471,6 @@ def maybe_download_and_extract():
 		os.remove(zip_cifar_10)
 
 
-file_name_date = str(_EPOCH) + '_' + str(datetime.day) + str(datetime.month) + str(datetime.year) + '.txt'
-
 def train(epoch):
 	"""
 	Train the network.
@@ -601,6 +599,8 @@ merged = tf.summary.merge_all()
 train_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/train', sess.graph)
 test_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/test')
 
+file_name_date = str(_EPOCH) + '_' + str(datetime.day) + str(datetime.month) + str(datetime.year) + '.txt'
+
 saver = tf.train.Saver()
 save_path = 'saves/'
 save_folder = os.path.join(save_path, pretty_time())
@@ -632,7 +632,7 @@ def get_total_parameters():
 
 
 def main(args=None):
-	global _EPOCH, _NUM_GPUS, _TOTAL_BATCH, save_folder
+	global _EPOCH, _NUM_GPUS, _TOTAL_BATCH, save_folder, file_name_date
 	# if tf.gfile.Exists(tmp_path + "tensorboard/hw2"):
 	# 	tf.gfile.DeleteRecursively(tmp_path + "tensorboard/hw2")
 	# tf.gfile.MakeDirs(tmp_path + "tensorbaord/hw2")
@@ -658,6 +658,8 @@ def main(args=None):
 		
 		_EPOCH = args.epochs
 		_NUM_GPUS = args.gpus
+		
+		file_name_date = str(_EPOCH) + '_' + str(datetime.day) + str(datetime.month) + str(datetime.year) + '.txt'
 	else:
 		_EPOCH = 5
 		_NUM_GPUS = 4
