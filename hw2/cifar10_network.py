@@ -648,7 +648,7 @@ def main(args=None):
 			else:
 				print('restoring last check point')
 				
-				with open(os.path.join(save_folder, 'hyper_params'), 'rb') as f:
+				with open(os.path.join(read_file, 'hyper_params'), 'rb') as f:
 					hyper_params = pickle.load(f)
 				was_epochs = hyper_params['epoch']
 				
