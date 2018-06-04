@@ -330,44 +330,8 @@ def get_data_set(name="train", distortion=False):
 			main_directory = tmp_path + "data_set/"
 			cifar_10_distortion_directory = main_directory + "cifar_10_distortion/"
 			cifar_10_distortion_file = cifar_10_distortion_directory + 'data_batch_'
-			
-			# one time code
-			this_time = True
-			if this_time:
-				with open(cifar_10_distortion_directory + 'batches.meta', 'rb') as f:
-					n_chuncks = pickle.load(f)['n_chuncks']
-				
-				x = None
-				y = None
-				for i in range(n_chuncks):
-					with open(cifar_10_distortion_file + str(i), 'rb') as f:
-						px, py = pickle.load(f)
-						x = np.concatenate([x, px]) if x is not None else px
-						y = np.concatenate([y, py]) if y is not None else py
-				
-				x = np.array(x)
-				y = np.array(y)
-				
-				x = np.reshape(x, [x.shape[0], reduce(int.__mul__, x.shape[1:])])
-				
-				data_len = len(x)
-				n_chuncks = 4
-				chunck_size = math.ceil(data_len / n_chuncks)
-				for i in range(n_chuncks):
-					with open(cifar_10_distortion_file + str(i), 'wb') as f:
-						pickle.dump([x[chunck_size * i: chunck_size * (i + 1)],
-						             y[chunck_size * i: chunck_size * (i + 1)]],
-						            f)
-				
-				for i in range(n_chuncks, 20):
-					os.remove(cifar_10_distortion_file + str(i))
-				
-				with open(cifar_10_distortion_directory + 'batches.meta', 'wb') as f:
-					pickle.dump({'n_chuncks': n_chuncks}, f)
-			
-			# end one time code
-			
-			elif not os.path.exists(cifar_10_distortion_directory) \
+						
+			if not os.path.exists(cifar_10_distortion_directory) \
 					or not os.path.exists(cifar_10_distortion_file + '0'):
 				if not os.path.exists(cifar_10_distortion_directory):
 					os.makedirs(cifar_10_distortion_directory)
