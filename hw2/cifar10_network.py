@@ -513,9 +513,6 @@ def train(epoch):
 				percentage = int(round((s / batch_count) * 100))
 				msg = "Epoch {epoch:03d}: step: {step:03d} , batch_acc = {acc:02.5f} , batch loss = {loss:02.5f}"
 				print(msg.format(epoch=epoch, step=s, acc=batch_acc, loss=batch_loss))
-				
-				with open(file_name_date, 'w') as f:
-					f.writelines(msg.format(epoch=epoch, step=s, acc=batch_acc, loss=batch_loss))
 		
 		test_and_save(epoch)
 
@@ -556,6 +553,9 @@ def test_and_save(epoch):
 	tensorboard_test_counter += 1
 	mes = "\nEpoch {} - accuracy: {:.2f}% ({}/{})"
 	print(mes.format((epoch + 1), acc, correct_numbers, len(test_x)))
+	
+	with open(file_name_date, 'a' if os.path.exists(file_name_date) else 'w') as f:
+		f.writelines(mes.format((epoch + 1), acc, correct_numbers, len(test_x)))
 	
 	if global_accuracy != 0 and global_accuracy < acc:
 		mes = "This epoch receive better accuracy: {:.2f} > {:.2f}. Saving session..."
