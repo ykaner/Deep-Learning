@@ -584,7 +584,7 @@ _IMAGE_SIZE = 32
 _IMAGE_CHANNELS = 3
 
 # PARAMS
-_BATCH_SIZE = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 512
+_BATCH_SIZE = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 512 + 128
 _EPOCH = 5
 _NUM_GPUS = 4
 _TOTAL_BATCH = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
@@ -599,7 +599,7 @@ merged = tf.summary.merge_all()
 train_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/train', sess.graph)
 test_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/test')
 
-file_name_date = str(_EPOCH) + '_' + str(datetime.day) + str(datetime.month) + str(datetime.year) + '.txt'
+file_name_date = str(_EPOCH) + '_' + str(datetime.now().day) + str(datetime.now().month) + str(datetime.now().year) + '.txt'
 
 saver = tf.train.Saver()
 save_path = 'saves/'
