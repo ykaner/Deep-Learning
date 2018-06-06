@@ -487,9 +487,9 @@ def train(epoch):
 	"""
 	
 	def lr_dict(ep):
-		if ep < 60:
+		if ep < 80:
 			return 0.1
-		elif ep < 90:
+		elif ep < 120:
 			return 0.01
 		else:
 			return 0.001
