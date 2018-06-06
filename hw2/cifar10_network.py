@@ -480,9 +480,9 @@ def train(epoch):
 	"""
 	
 	def lr_dict(ep):
-		if ep < 80:
+		if ep < 60:
 			return 0.1
-		elif ep < 120:
+		elif ep < 90:
 			return 0.01
 		else:
 			return 0.001
@@ -589,7 +589,7 @@ _EPOCH = 5
 _NUM_GPUS = 4
 _TOTAL_BATCH = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
 
-train_x, train_y = get_data_set("train", distortion=True)
+train_x, train_y = get_data_set("train", distortion=False)
 
 test_x, test_y = get_data_set("test")
 x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, avg_grads, keep_prob, is_train, learning_rate = model()
