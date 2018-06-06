@@ -35,11 +35,11 @@ def conv2d_layer(input_tensor, weights_shape, layer_name, strides=None, padding=
 		if batch_n:
 			with tf.variable_scope('batch_normalization'):
 				mean, var = tf.nn.moments(preactivate, [0], name='maen_var')
-				z = tf.div(preactivate - mean, tf.sqrt(var + 1e-4))
+				# z = tf.div(preactivate - mean, tf.sqrt(var + 1e-4))
 				gamma = tf.get_variable(name='gamma', shape=weights_shape[-1], initializer=tf.ones_initializer())
 				betta = tf.get_variable(name='betta', shape=weights_shape[-1], initializer=tf.zeros_initializer())
-				preactivate = tf.add(tf.multiply(z, gamma), betta)
-			# preactivate = tf.layers.batch_normalization(preactivate, training=is_train)
+				# preactivate = tf.add(tf.multiply(z, gamma), betta)
+				preactivate = tf.nn.batch_normalization(preactivate, mean, var, betta, gamma, name='batch_norm')
 		activations = act(preactivate, name='activation')
 		with tf.device('/cpu:0'):
 			tf.summary.histogram('activations', activations)
