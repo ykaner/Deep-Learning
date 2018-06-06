@@ -207,9 +207,16 @@ def ResNet(_x, keep_prob, is_train=False, reuse=False):
 		conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [3, 3, 64, 64], layer_name="conv_3_3", batch_n=True,
 		                                         is_train=is_train, act=conv3_2_act)
 		
-		gap = tf.layers.average_pooling2d(conv3_3, [8, 8], [8, 8], padding='VALID', name='gap')
+		def conv3_3_act(out, name):
+			return tf.nn.relu(out + conv3_3, name)
 		
-		# pool3 = avg_pool_2x2(conv3_3, name="pool3")
+		conv3_4 = utils.tensorboard.conv2d_layer(conv3_3, [3, 3, 64, 64], layer_name="conv_3_4", batch_n=True,
+		                                         is_train=is_train, act=tf.nn.relu)
+		
+		conv3_5 = utils.tensorboard.conv2d_layer(conv3_4, [3, 3, 64, 64], layer_name="conv_3_5", batch_n=True,
+		                                         is_train=is_train, act=conv3_3_act)
+		
+		gap = tf.layers.average_pooling2d(conv3_5, [8, 8], [8, 8], padding='VALID', name='gap')
 		
 		flat = tf.reshape(gap, [-1, 64], name="flat")
 		
