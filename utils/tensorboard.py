@@ -39,7 +39,7 @@ def conv2d_layer(input_tensor, weights_shape, layer_name, strides=None, padding=
 				gamma = tf.get_variable(name='gamma', shape=weights_shape[-1], initializer=tf.ones_initializer())
 				betta = tf.get_variable(name='betta', shape=weights_shape[-1], initializer=tf.zeros_initializer())
 				# preactivate = tf.add(tf.multiply(z, gamma), betta)
-				preactivate = tf.nn.batch_normalization(preactivate, mean, var, betta, gamma, 1e-6, name='batch_norm')
+				preactivate = tf.nn.batch_normalization(preactivate, mean, var, betta, gamma, 1e-3, name='batch_norm')
 		activations = act(preactivate, name='activation')
 		with tf.device('/cpu:0'):
 			tf.summary.histogram('activations', activations)
