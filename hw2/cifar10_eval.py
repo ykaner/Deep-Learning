@@ -36,7 +36,7 @@ import math
 import time
 from datetime import datetime
 
-import cifar10
+from . import cifar10
 import numpy as np
 import tensorflow as tf
 
