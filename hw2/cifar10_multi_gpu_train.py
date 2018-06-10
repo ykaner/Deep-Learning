@@ -141,12 +141,15 @@ def train():
 		decay_steps = int(num_batches_per_epoch * cifar10.NUM_EPOCHS_PER_DECAY)
 		
 		# Decay the learning rate exponentially based on the number of steps.
-		lr = tf.train.exponential_decay(
-				cifar10.INITIAL_LEARNING_RATE, global_step, decay_steps, cifar10.LEARNING_RATE_DECAY_FACTOR,
-				staircase=True)
+		# lr = tf.train.exponential_decay(
+		# 		cifar10.INITIAL_LEARNING_RATE, global_step, decay_steps, cifar10.LEARNING_RATE_DECAY_FACTOR,
+		# 		staircase=True)
+		
+		lr = tf.placeholder(tf.float32, name='learning_rate')
 		
 		# Create an optimizer that performs gradient descent.
-		opt = tf.train.GradientDescentOptimizer(lr)
+		# opt = tf.train.GradientDescentOptimizer(lr)
+		opt = tf.train.MomentumOptimizer(lr, momentum=0.9, use_nesterov=True, name='Momentum Optimizer')
 		
 		# Get images and labels for CIFAR-10.
 		images, labels = cifar10.distorted_inputs()
@@ -224,9 +227,18 @@ def train():
 		
 		summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
 		
+		def lr_dict(step):
+			epoch = step // num_batches_per_epoch
+			if epoch < 80:
+				return 0.1
+			elif epoch < 120:
+				return 0.01
+			else:
+				return 0.001
+			
 		for step in range(FLAGS.max_steps):
 			start_time = time.time()
-			_, loss_value = sess.run([train_op, loss])
+			_, loss_value = sess.run([train_op, loss], feed_dict={lr: lr_dict(step)})
 			duration = time.time() - start_time
 			
 			assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
