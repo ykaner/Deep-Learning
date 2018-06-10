@@ -517,7 +517,8 @@ def train(epoch):
 			train_writer.add_summary(summery, global_step=tensorboard_train_counter)
 			tensorboard_train_counter += 1
 			
-			if s % 20 == 0:
+			print_rate = 20
+			if s % print_rate == print_rate // 2:
 				percentage = int(round((s / batch_count) * 100))
 				msg = "Epoch {epoch:03d}: step: {step:03d} , batch_acc = {acc:02.5f} , batch loss = {loss:02.5f}"
 				print(msg.format(epoch=epoch, step=s, acc=batch_acc, loss=batch_loss))
@@ -592,7 +593,7 @@ _IMAGE_SIZE = 32
 _IMAGE_CHANNELS = 3
 
 # PARAMS
-_BATCH_SIZE = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 512 + 128
+_BATCH_SIZE = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 512 + 256
 _EPOCH = 5
 _NUM_GPUS = 4
 _TOTAL_BATCH = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
