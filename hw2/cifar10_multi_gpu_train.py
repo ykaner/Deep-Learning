@@ -47,6 +47,7 @@ import tensorflow as tf
 from six.moves import range  # pylint: disable=redefined-builtin
 
 from . import cifar10
+from . import cifar10_eval
 
 FLAGS = tf.flags.FLAGS
 
@@ -264,6 +265,8 @@ def train():
 			if step % 1000 == 0 or (step + 1) == FLAGS.max_steps:
 				checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
 				saver.save(sess, checkpoint_path, global_step=step)
+				
+				cifar10_eval.main()
 
 
 def main(argv=None):  # pylint: disable=unused-argument
