@@ -15,8 +15,8 @@ from urllib.request import urlretrieve
 import numpy as np
 import tensorflow as tf
 
-import utils.tensorboard
 from . import cifar10
+from .. import utils
 
 if os.name is "nt":
 	tmp_path = "C:/tmp/"
