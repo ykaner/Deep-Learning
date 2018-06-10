@@ -1,5 +1,5 @@
 import tensorflow as tf
-import cmath as math
+import math
 
 def variable_summaries(var):
 	with tf.device('/cpu:0'):
