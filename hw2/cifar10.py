@@ -83,7 +83,7 @@ def _activation_summary(x):
 	:returns: nothing
 	"""
 	# Remove 'tower_[0-9]/' from the name in case this is a multi-GPU training
-	# session. This helps the clarity of presentation on tensorboard.
+	# session. This helps the clarity of presentation on functions.
 	tensor_name = re.sub('{0}_[0-9]*/'.format(TOWER_NAME), '', x.op.name)
 	tf.summary.histogram(tensor_name + '/activations', x)
 	tf.summary.scalar(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
@@ -174,15 +174,15 @@ def inference(images):
 	keep_prob = 1.0
 	net_option = 'A'
 	with tf.variable_scope('ResNet'):
-		conv0 = utils.tensorboard.conv2d_layer(images, [3, 3, 3, 16], layer_name="conv_0", batch_n=False)
+		conv0 = utils.functions.conv2d_layer(images, [3, 3, 3, 16], layer_name="conv_0", batch_n=False)
 		
 		def conv1_act(out, name):
 			return tf.nn.relu(out + conv0, name)
 		
-		conv1 = utils.tensorboard.conv2d_layer(conv0, [3, 3, 16, 16], layer_name="conv_1", batch_n=True,
+		conv1 = utils.functions.conv2d_layer(conv0, [3, 3, 16, 16], layer_name="conv_1", batch_n=True,
 		                                       act=tf.nn.relu)
 		
-		conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", batch_n=True,
+		conv1_1 = utils.functions.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", batch_n=True,
 		                                         act=conv1_act)
 		
 		shortcut1_1 = conv1_1
@@ -190,21 +190,21 @@ def inference(images):
 		def conv1_2_act(out, name):
 			return tf.nn.relu(out + shortcut1_1, name)
 		
-		conv1_2 = utils.tensorboard.conv2d_layer(conv1_1, [3, 3, 16, 16], layer_name="conv_1_2", batch_n=True,
+		conv1_2 = utils.functions.conv2d_layer(conv1_1, [3, 3, 16, 16], layer_name="conv_1_2", batch_n=True,
 		                                         act=tf.nn.relu)
 		
-		conv1_3 = utils.tensorboard.conv2d_layer(conv1_2, [3, 3, 16, 16], layer_name="conv_1_3", batch_n=True,
+		conv1_3 = utils.functions.conv2d_layer(conv1_2, [3, 3, 16, 16], layer_name="conv_1_3", batch_n=True,
 		                                         act=conv1_2_act)
 		
-		shortcut2 = utils.tensorboard.shortcut(conv1_3, [16, 32], layer_name='shortcut2', option=net_option)
+		shortcut2 = utils.functions.shortcut(conv1_3, [16, 32], layer_name='shortcut2', option=net_option)
 		
 		def conv2_act(out, name):
 			return tf.nn.relu(out + shortcut2, name)
 		
-		conv2 = utils.tensorboard.conv2d_layer(conv1_3, [3, 3, 16, 32], layer_name="conv_2", strides=[1, 2, 2, 1],
+		conv2 = utils.functions.conv2d_layer(conv1_3, [3, 3, 16, 32], layer_name="conv_2", strides=[1, 2, 2, 1],
 		                                       batch_n=True, act=tf.nn.relu)
 		
-		conv2_1 = utils.tensorboard.conv2d_layer(conv2, [3, 3, 32, 32], layer_name="conv_2_1", batch_n=True,
+		conv2_1 = utils.functions.conv2d_layer(conv2, [3, 3, 32, 32], layer_name="conv_2_1", batch_n=True,
 		                                         act=conv2_act)
 		
 		shortcut2_2 = conv2_1
@@ -212,10 +212,10 @@ def inference(images):
 		def conv2_2_act(out, name):
 			return tf.nn.relu(out + shortcut2_2, name)
 		
-		conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", batch_n=True,
+		conv2_2 = utils.functions.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", batch_n=True,
 		                                         act=tf.nn.relu)
 		
-		conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", batch_n=True,
+		conv2_3 = utils.functions.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", batch_n=True,
 		                                         act=conv2_2_act)
 		
 		shortcut2_3 = conv2_3
@@ -223,21 +223,21 @@ def inference(images):
 		def conv2_3_act(out, name):
 			return tf.nn.relu(out + shortcut2_3, name)
 		
-		conv2_4 = utils.tensorboard.conv2d_layer(conv2_3, [3, 3, 32, 32], layer_name="conv_2_4", batch_n=True,
+		conv2_4 = utils.functions.conv2d_layer(conv2_3, [3, 3, 32, 32], layer_name="conv_2_4", batch_n=True,
 		                                         act=tf.nn.relu)
 		
-		conv2_5 = utils.tensorboard.conv2d_layer(conv2_4, [3, 3, 32, 32], layer_name="conv_2_5", batch_n=True,
+		conv2_5 = utils.functions.conv2d_layer(conv2_4, [3, 3, 32, 32], layer_name="conv_2_5", batch_n=True,
 		                                         act=conv2_3_act)
 		
-		shortcut3 = utils.tensroboard.shortcut(conv2_5, [32, 64], layer_name='shortcut3', option=net_option)
+		shortcut3 = utils.functions.shortcut(conv2_5, [32, 64], layer_name='shortcut3', option=net_option)
 		
 		def conv3_act(out, name):
 			return tf.nn.relu(out + shortcut3, name)
 		
-		conv3 = utils.tensorboard.conv2d_layer(conv2_5, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1],
+		conv3 = utils.functions.conv2d_layer(conv2_5, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1],
 		                                       batch_n=True, act=tf.nn.relu)
 		
-		conv3_1 = utils.tensorboard.conv2d_layer(conv3, [3, 3, 64, 64], layer_name="conv_3_1", batch_n=True,
+		conv3_1 = utils.functions.conv2d_layer(conv3, [3, 3, 64, 64], layer_name="conv_3_1", batch_n=True,
 		                                         act=conv3_act)
 		
 		shortcut3_2 = conv3_1
@@ -245,19 +245,19 @@ def inference(images):
 		def conv3_2_act(out, name):
 			return tf.nn.relu(out + shortcut3_2, name)
 		
-		conv3_2 = utils.tensorboard.conv2d_layer(conv3_1, [3, 3, 64, 64], layer_name="conv_3_2", batch_n=True,
+		conv3_2 = utils.functions.conv2d_layer(conv3_1, [3, 3, 64, 64], layer_name="conv_3_2", batch_n=True,
 		                                         act=tf.nn.relu)
 		
-		conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [3, 3, 64, 64], layer_name="conv_3_3", batch_n=True,
+		conv3_3 = utils.functions.conv2d_layer(conv3_2, [3, 3, 64, 64], layer_name="conv_3_3", batch_n=True,
 		                                         act=conv3_2_act)
 		
 		def conv3_3_act(out, name):
 			return tf.nn.relu(out + conv3_3, name)
 		
-		conv3_4 = utils.tensorboard.conv2d_layer(conv3_3, [3, 3, 64, 64], layer_name="conv_3_4", batch_n=True,
+		conv3_4 = utils.functions.conv2d_layer(conv3_3, [3, 3, 64, 64], layer_name="conv_3_4", batch_n=True,
 		                                         act=tf.nn.relu)
 		
-		conv3_5 = utils.tensorboard.conv2d_layer(conv3_4, [3, 3, 64, 64], layer_name="conv_3_5", batch_n=True,
+		conv3_5 = utils.functions.conv2d_layer(conv3_4, [3, 3, 64, 64], layer_name="conv_3_5", batch_n=True,
 		                                         act=conv3_3_act)
 		
 		gap = tf.layers.average_pooling2d(conv3_5, [8, 8], [8, 8], padding='VALID', name='gap')
