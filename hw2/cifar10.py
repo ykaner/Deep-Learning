@@ -260,7 +260,7 @@ def inference(images):
 		conv3_5 = functions.conv2d_layer(conv3_4, [3, 3, 64, 64], layer_name="conv_3_5", batch_n=True,
 		                                 act=conv3_3_act)
 		
-		gap = tf.layers.average_pooling2d(conv3_5, [8, 8], [8, 8], padding='VALID', name='gap')
+		gap = tf.layers.average_pooling2d(conv3_5, [6, 6], [6, 6], padding='VALID', name='gap')
 		
 		flat = tf.reshape(gap, [-1, 64], name="flat")
 		
