@@ -62,7 +62,7 @@ def shortcut(input_tensor, shapes, layer_name='shourtcut', option='A'):
 		pad = (out_shape - in_shape) / 2
 		
 		if option == 'A':
-			x = avg_pool_layer(input_tensor, [1, 2, 2, 1], [1, 2, 2, 1], layer_name='shortcut_pool', padding='SAME')
+			x = avg_pool_layer(input_tensor, [1, 2, 2, 1], [1, 2, 2, 1], layer_name='shortcut_pool', padding='VALID')
 			
 			pads = [[0, 0]] * 3 + [[math.ceil(pad), math.floor(pad)]]
 			x = tf.pad(x, paddings=pads)
