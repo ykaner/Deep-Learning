@@ -7,8 +7,10 @@ import os
 import pickle
 import sys
 import tarfile
-import zipfile
+import urllib
+from builtins import range
 from datetime import datetime
+from functools import reduce
 from time import time
 from urllib.request import urlretrieve
 
@@ -17,6 +19,7 @@ import tensorflow as tf
 
 from . import cifar10
 from .. import utils
+from hw2.cifar10_input import distorted_inputs
 
 if os.name is "nt":
 	tmp_path = "C:/tmp/"
@@ -39,7 +42,9 @@ tf.flags.DEFINE_integer("epochs", 50, """How many epochs to run.""")
 tensorboard_train_counter = 0
 tensorboard_test_counter = 0
 
-sess = tf.Session()
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+sess = tf.Session(config=config)
 
 
 def pretty_time():
@@ -52,6 +57,7 @@ def max_pool_2x2(x, name):
 
 def avg_pool_2x2(x, name):
 	return tf.nn.avg_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
+
 
 #
 # def tower_loss(scope, images, labels):
@@ -124,87 +130,123 @@ def average_gradients(tower_grads):
 	return average_grads
 
 
-def ResNet(_x, keep_prob, reuse=False):
+def ResNet(_x, keep_prob, is_train=False, reuse=False):
 	with tf.variable_scope('ResNet', reuse=reuse):
-		conv0 = utils.tensorboard.conv2d_layer(_x, [3, 3, 3, 16], layer_name="conv_0")
+		def no_act(val, name=''):
+			return val
+		
+		conv0 = utils.tensorboard.conv2d_layer(_x, [3, 3, 3, 16], layer_name="conv_0", batch_n=False, is_train=is_train)
 		
 		def conv1_act(out, name):
 			return tf.nn.relu(out + conv0, name)
 		
-		conv1 = utils.tensorboard.conv2d_layer(conv0, [3, 3, 16, 16], layer_name="conv_1", act=tf.nn.relu)
+		conv1 = utils.tensorboard.conv2d_layer(conv0, [3, 3, 16, 16], layer_name="conv_1", batch_n=True,
+		                                       is_train=is_train, act=tf.nn.relu)
 		
-		conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", act=conv1_act)
+		conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", batch_n=True,
+		                                         is_train=is_train, act=conv1_act)
 		
-		# pool = max_pool_2x2(conv1_1, name="pool")
+		def conv1_2_act(out, name):
+			return tf.nn.relu(out + conv1_1, name)
 		
-		drop = tf.nn.dropout(conv1_1, keep_prob, name="drop")
+		conv1_2 = utils.tensorboard.conv2d_layer(conv1_1, [3, 3, 16, 16], layer_name="conv_1_2", batch_n=True,
+		                                         is_train=is_train, act=tf.nn.relu)
 		
-		def identical(val, name=''):
+		conv1_3 = utils.tensorboard.conv2d_layer(conv1_2, [3, 3, 16, 16], layer_name="conv_1_3", batch_n=True,
+		                                         is_train=is_train, act=conv1_2_act)
+		
+		def no_act(val, name=''):
 			return val
 		
-		shortcut2 = utils.tensorboard.conv2d_layer(drop, [1, 1, 16, 32], layer_name="shortcut2", strides=[1, 2, 2, 1],
-		                                           act=identical)
+		shortcut2 = utils.tensorboard.conv2d_layer(conv1_3, [1, 1, 16, 32], layer_name="shortcut2",
+		                                           strides=[1, 2, 2, 1],
+		                                           act=no_act)
 		
 		def conv2_act(out, name):
 			return tf.nn.relu(out + shortcut2, name)
 		
-		conv2 = utils.tensorboard.conv2d_layer(drop, [3, 3, 16, 32], layer_name="conv_2", strides=[1, 2, 2, 1],
+		conv2 = utils.tensorboard.conv2d_layer(conv1_3, [3, 3, 16, 32], layer_name="conv_2", strides=[1, 2, 2, 1],
+		                                       batch_n=True, is_train=is_train,
 		                                       act=tf.nn.relu)
 		
-		conv2_1 = utils.tensorboard.conv2d_layer(conv2, [3, 3, 32, 32], layer_name="conv_2_1", act=conv2_act)
+		conv2_1 = utils.tensorboard.conv2d_layer(conv2, [3, 3, 32, 32], layer_name="conv_2_1", batch_n=True,
+		                                         is_train=is_train, act=conv2_act)
 		
 		shortcut2_2 = conv2_1
 		
 		def conv2_2_act(out, name):
 			return tf.nn.relu(out + shortcut2_2, name)
 		
-		conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", act=tf.nn.relu)
+		conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", batch_n=True,
+		                                         is_train=is_train, act=tf.nn.relu)
 		
-		conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", act=conv2_2_act)
+		conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", batch_n=True,
+		                                         is_train=is_train, act=conv2_2_act)
 		
-		pool2 = conv2_3  # max_pool_2x2(conv2_3, name="pool2")
+		shortcut2_3 = conv2_3
+		
+		def conv2_3_act(out, name):
+			return tf.nn.relu(out + shortcut2_3, name)
+		
+		conv2_4 = utils.tensorboard.conv2d_layer(conv2_3, [3, 3, 32, 32], layer_name="conv_2_4", batch_n=True,
+		                                         is_train=is_train, act=tf.nn.relu)
+		
+		conv2_5 = utils.tensorboard.conv2d_layer(conv2_4, [3, 3, 32, 32], layer_name="conv_2_5", batch_n=True,
+		                                         is_train=is_train, act=conv2_3_act)
+		
+		pool2 = conv2_5  # max_pool_2x2(conv2_3, name="pool2")
 		
 		shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", strides=[1, 2, 2, 1],
-		                                           act=identical)
+		                                           act=no_act)
 		
 		def conv3_act(out, name):
 			return tf.nn.relu(out + shortcut3, name)
 		
 		conv3 = utils.tensorboard.conv2d_layer(pool2, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1],
+		                                       batch_n=True, is_train=is_train,
 		                                       act=tf.nn.relu)
 		
-		conv3_1 = utils.tensorboard.conv2d_layer(conv3, [3, 3, 64, 64], layer_name="conv_3_1", act=conv3_act)
+		conv3_1 = utils.tensorboard.conv2d_layer(conv3, [3, 3, 64, 64], layer_name="conv_3_1", batch_n=True,
+		                                         is_train=is_train, act=conv3_act)
 		
 		shortcut3_2 = conv3_1
 		
 		def conv3_2_act(out, name):
 			return tf.nn.relu(out + shortcut3_2, name)
 		
-		conv3_2 = utils.tensorboard.conv2d_layer(conv3_1, [3, 3, 64, 64], layer_name="conv_3_2", act=tf.nn.relu)
+		conv3_2 = utils.tensorboard.conv2d_layer(conv3_1, [3, 3, 64, 64], layer_name="conv_3_2", batch_n=True,
+		                                         is_train=is_train, act=tf.nn.relu)
 		
-		conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [3, 3, 64, 64], layer_name="conv_3_3", act=conv3_2_act)
+		conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [3, 3, 64, 64], layer_name="conv_3_3", batch_n=True,
+		                                         is_train=is_train, act=conv3_2_act)
 		
-		gap = tf.layers.average_pooling2d(conv3_3, [8, 8], [8, 8], padding='VALID', name='gap')
+		def conv3_3_act(out, name):
+			return tf.nn.relu(out + conv3_3, name)
 		
-		# pool3 = avg_pool_2x2(conv3_3, name="pool3")
+		conv3_4 = utils.tensorboard.conv2d_layer(conv3_3, [3, 3, 64, 64], layer_name="conv_3_4", batch_n=True,
+		                                         is_train=is_train, act=tf.nn.relu)
+		
+		conv3_5 = utils.tensorboard.conv2d_layer(conv3_4, [3, 3, 64, 64], layer_name="conv_3_5", batch_n=True,
+		                                         is_train=is_train, act=conv3_3_act)
+		
+		gap = tf.layers.average_pooling2d(conv3_5, [8, 8], [8, 8], padding='VALID', name='gap')
 		
 		flat = tf.reshape(gap, [-1, 64], name="flat")
 		
-		# with tf.variable_scope('fc_1'):
-		# 	fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=32, name="dense_layer"),
-		# 	                name="relu")  # , activation=tf.nn.relu)
-		# 	drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
-		#
-		# tf.summary.histogram("drop4", drop4)
+		with tf.variable_scope('fc_1'):
+			fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=32, name="dense_layer"),
+			                name="relu")  # , activation=tf.nn.relu)
+			drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
 		
-		logits = tf.nn.softmax(tf.layers.dense(inputs=flat, units=_NUM_CLASSES), name="softmax")
+		with tf.device('cpu:0'):
+			tf.summary.histogram("drop4", drop4)
+		
+		logits = tf.nn.softmax(tf.layers.dense(inputs=drop4, units=_NUM_CLASSES), name="softmax")
 	
 	return logits
 
 
-def model():
-	_IMAGE_SIZE = 32
-	_IMAGE_CHANNELS = 3
+def model(inputs, labels):
 	with tf.device('/cpu:0'):
 		tower_grads = []
 		reuse_vars = False
@@ -212,17 +254,24 @@ def model():
 		predictions = []
 		correct_predictions = []
 		accuracies = []
-		with tf.name_scope('input'):
-			X = tf.placeholder(tf.float32, shape=[None, _IMAGE_SIZE * _IMAGE_SIZE * _IMAGE_CHANNELS], name='Input')
-			Y = tf.placeholder(tf.float32, shape=[None, _NUM_CLASSES], name='Output')
+		# with tf.name_scope('input'):
+		# 	X = tf.placeholder(tf.float32, shape=[None, _IMAGE_SIZE * _IMAGE_SIZE * _IMAGE_CHANNELS], name='Input')
+		# 	Y = tf.placeholder(tf.float32, shape=[None, _NUM_CLASSES], name='Output')
 		
+		# if X is None or Y is None:
+		
+		X, Y = inputs, labels
+		
+		# else:  # if given as a placeholder and need reshape
 		with tf.name_scope('input_reshape'):
 			X_image = tf.reshape(X, [-1, _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS], name='images')
 		
-		tf.summary.image("intput", X_image, 10)
-		
 		with tf.name_scope('dropout_parameter'):
 			keep_prob = tf.placeholder(tf.float32, name="keep_prob")
+		is_train = tf.placeholder(tf.bool, name='is_training')
+		learning_rate = tf.placeholder(tf.float32, name='learning_rate')
+		
+		tf.summary.image("intput", X_image, 10)
 		
 		tf.summary.scalar('dropout_keep_probability', keep_prob)
 		
@@ -232,7 +281,7 @@ def model():
 					_x_image = X_image[i * NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN: (i + 1) * NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN]
 					_y = Y[i * NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN: (i + 1) * NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN]
 					
-					logits = ResNet(_x_image, keep_prob, reuse_vars)
+					logits = ResNet(_x_image, keep_prob, is_train, reuse_vars)
 					
 					with tf.name_scope('total'):
 						y_pred_cls = tf.argmax(logits, axis=1, name="y_pred_cls")
@@ -248,11 +297,16 @@ def model():
 					with tf.device('/cpu:0'):
 						tf.summary.scalar("loss", loss)
 						tf.summary.scalar("accuracy", accuracy)
-						# tf.summary.scalar("correct_predictions", correct_prediction)
+					# tf.summary.scalar("correct_predictions", correct_prediction)
 					
 					with tf.name_scope('train'):
-						optimizer = tf.train.AdamOptimizer(1e-3, beta1=0.9, beta2=0.999, epsilon=1e-08,
-						                                   name="AdamOptimizer")
+						# optimizer = tf.train.AdamOptimizer(5e-4, beta1=0.9, beta2=0.999, epsilon=1e-08,
+						#                                    name="AdamOptimizer")
+						
+						# optimizer = tf.train.AdadeltaOptimizer(5e-4)
+						
+						optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=0.9,
+						                                       use_nesterov=True, name='MomentumOptimizer')
 						grads = optimizer.compute_gradients(loss)
 						tower_grads.append(grads)
 					
@@ -263,18 +317,20 @@ def model():
 		correct_predictions = tf.concat(correct_predictions, axis=0)
 		predictions = tf.concat(predictions, axis=0)
 		accuracy = tf.reduce_mean(accuracies)
+		# update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+		# with tf.control_dependencies(update_ops):
 		train_op = optimizer.apply_gradients(avg_grads)
 	
-	return X, Y, loss, train_op, correct_predictions, accuracy, predictions, keep_prob
+	return X, Y, loss, train_op, correct_predictions, accuracy, predictions, avg_grads, keep_prob, is_train, learning_rate
 
 
-def get_data_set(name="train"):
+def get_data_set(name="train", distortion=False):
 	x = None
 	y = None
 	
 	maybe_download_and_extract()
 	
-	folder_name = "cifar_10"
+	folder_name = "cifar_10_python"
 	
 	f = open(tmp_path + 'data_set/' + folder_name + '/batches.meta', 'rb')
 	f.close()
@@ -299,6 +355,79 @@ def get_data_set(name="train"):
 			else:
 				x = np.concatenate((x, _X), axis=0)
 				y = np.concatenate((y, _Y), axis=0)
+		
+		if distortion:
+			main_directory = tmp_path + "data_set/"
+			cifar_10_distortion_directory = main_directory + "cifar_10_distortion/"
+			cifar_10_distortion_file = cifar_10_distortion_directory + 'data_batch_'
+			
+			if not os.path.exists(cifar_10_distortion_directory) \
+					or not os.path.exists(cifar_10_distortion_file + '0'):
+				if not os.path.exists(cifar_10_distortion_directory):
+					os.makedirs(cifar_10_distortion_directory)
+				
+				x = np.reshape(x, [x.shape[0], _IMAGE_SIZE, _IMAGE_SIZE, _IMAGE_CHANNELS])
+				
+				flip_left_right = [np.flip(image, 1) for image in x]
+				
+				def crop_image(img):
+					pad_size = 5
+					paddings = [[pad_size, pad_size], [pad_size, pad_size], [0, 0]]
+					img = np.pad(img, paddings, 'reflect')
+					startx = np.random.randint(pad_size * 2)
+					starty = np.random.randint(pad_size * 2)
+					return img[starty:starty + _IMAGE_SIZE, startx:startx + _IMAGE_SIZE]
+				
+				crop = [crop_image(image) for image in x]
+				
+				def per_image_standardization(img):
+					img_len = reduce(int.__mul__, img.shape)
+					mean = np.mean(img)
+					stddev = np.sum([np.power(xi - mean, 2.0) for xi in np.nditer(img.T)]) / img_len
+					adjusted_stddev = max(stddev, 1.0 / np.sqrt(img_len))
+					
+					return (img - mean) / adjusted_stddev
+				
+				image_standardization = [per_image_standardization(image) for image in x]
+				
+				x = np.concatenate((x, flip_left_right, crop, image_standardization), axis=0)
+				y = np.concatenate([y] * 4, axis=0)
+				
+				x = np.reshape(x, [x.shape[0], reduce(int.__mul__, x.shape[1:])])
+				
+				idx = np.arange(len(x))
+				np.random.shuffle(idx)
+				x = x[idx]
+				y = y[idx]
+				
+				data_len = len(x)
+				n_chuncks = 4
+				chunck_size = math.ceil(data_len / n_chuncks)
+				for i in range(n_chuncks):
+					with open(cifar_10_distortion_file + str(i), 'wb') as f:
+						pickle.dump([x[chunck_size * i: chunck_size * (i + 1)],
+						             y[chunck_size * i: chunck_size * (i + 1)]],
+						            f)
+				
+				with open(cifar_10_distortion_directory + 'batches.meta', 'wb') as f:
+					pickle.dump({'n_chuncks': n_chuncks}, f)
+			
+			else:
+				
+				with open(cifar_10_distortion_directory + 'batches.meta', 'rb') as f:
+					n_chuncks = pickle.load(f)['n_chuncks']
+				
+				x = None
+				y = None
+				for i in range(n_chuncks):
+					with open(cifar_10_distortion_file + str(i), 'rb') as f:
+						px, py = pickle.load(f)
+						x = np.concatenate([x, px]) if x is not None else px
+						y = np.concatenate([y, py]) if y is not None else py
+				
+				x = np.array(x)
+				y = np.array(y)
+	
 	
 	elif name is "test":
 		f = open(tmp_path + 'data_set/' + folder_name + '/test_batch', 'rb')
@@ -339,162 +468,63 @@ def _print_download_progress(count, block_size, total_size):
 	sys.stdout.flush()
 
 
+# def maybe_download_and_extract():
+# 	"""
+# 	Download the dataset if needed.
+# 	"""
+#
+# 	main_directory = tmp_path + "data_set/"
+# 	cifar_10_directory = main_directory + "cifar_10/"
+# 	if not os.path.exists(main_directory) or not os.path.exists(cifar_10_directory):
+# 		os.makedirs(main_directory)
+#
+# 		url = "http://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
+# 		filename = url.split('/')[-1]
+# 		file_path = os.path.join(main_directory, filename)
+# 		zip_cifar_10 = file_path
+# 		file_path, _ = urlretrieve(url=url, filename=file_path, reporthook=_print_download_progress)
+#
+# 		print()
+# 		print("Download finished. Extracting files.")
+# 		if file_path.endswith(".zip"):
+# 			zipfile.ZipFile(file=file_path, mode="r").extractall(main_directory)
+# 		elif file_path.endswith((".tar.gz", ".tgz")):
+# 			tarfile.open(name=file_path, mode="r:gz").extractall(main_directory)
+# 		print("Done.")
+#
+# 		os.rename(main_directory + "./cifar-10-batches-py", cifar_10_directory)
+# 		os.remove(zip_cifar_10)
+
+
 def maybe_download_and_extract():
 	"""
-	Download the dataset if needed.
+	If needed, downloads and extracts the tarball from Alex's website.
 	"""
 	
-	main_directory = tmp_path + "data_set/"
-	cifar_10_directory = main_directory + "cifar_10/"
-	if not os.path.exists(main_directory) or not os.path.exists(cifar_10_directory):
-		os.makedirs(main_directory)
+	global dataset_directory
+	
+	if not os.path.exists(dataset_directory):
+		os.makedirs(dataset_directory)
+	filename = DATA_URL.split('/')[-1]
+	filepath = os.path.join(dataset_directory, filename)
+	if not os.path.exists(filepath):
+		def _progress(count, block_size, total_size):
+			sys.stdout.write(
+					'\r>> Downloading %s %.1f%%' % (filename, float(count * block_size) / float(total_size) * 100.0))
+			sys.stdout.flush()
 		
-		url = "http://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
-		filename = url.split('/')[-1]
-		file_path = os.path.join(main_directory, filename)
-		zip_cifar_10 = file_path
-		file_path, _ = urlretrieve(url=url, filename=file_path, reporthook=_print_download_progress)
-		
+		filepath, _ = urllib.request.urlretrieve(DATA_URL, filepath, _progress)
 		print()
-		print("Download finished. Extracting files.")
-		if file_path.endswith(".zip"):
-			zipfile.ZipFile(file=file_path, mode="r").extractall(main_directory)
-		elif file_path.endswith((".tar.gz", ".tgz")):
-			tarfile.open(name=file_path, mode="r:gz").extractall(main_directory)
-		print("Done.")
 		
-		os.rename(main_directory + "./cifar-10-batches-py", cifar_10_directory)
-		os.remove(zip_cifar_10)
-
-
-def theirs_train():
-	"""Train CIFAR-10 for a number of steps."""
-	with tf.Graph().as_default(), tf.device('/cpu:0'):
-		# Create a variable to count the number of train() calls. This equals the
-		# number of batches processed * FLAGS.num_gpus.
-		global_step = tf.get_variable(
-				'global_step', [],
-				initializer=tf.constant_initializer(0), trainable=False)
+		statinfo = os.stat(filepath)
 		
-		# Calculate the learning rate schedule.
-		num_batches_per_epoch = (cifar10.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN /
-		                         FLAGS.batch_size)
-		
-		# decay_steps = int(num_batches_per_epoch * cifar10.NUM_EPOCHS_PER_DECAY)
-		
-		# Decay the learning rate exponentially based on the number of steps.
-		# lr = tf.train.exponential_decay(cifar10.INITIAL_LEARNING_RATE,
-		#                                 global_step,
-		#                                 decay_steps,
-		#                                 cifar10.LEARNING_RATE_DECAY_FACTOR,
-		#                                 staircase=True)
-		
-		# Create an optimizer that performs gradient descent.
-		# opt = tf.train.GradientDescentOptimizer(lr)
-		
-		# Get images and labels for CIFAR-10.
-		images, labels = cifar10.distorted_inputs()
-		batch_queue = tf.contrib.slim.prefetch_queue.prefetch_queue(
-				[images, labels], capacity=3 * FLAGS.num_gpus)
-		# Calculate the gradients for each model tower.
-		tower_grads = []
-		with tf.variable_scope(tf.get_variable_scope()):
-			for i in range(FLAGS.num_gpus):
-				with tf.device('/gpu:%d' % i):
-					with tf.name_scope('%s_%d' % (cifar10.TOWER_NAME, i)) as scope:
-						# Dequeues one batch for the GPU
-						image_batch, label_batch = batch_queue.dequeue()
-						# Calculate the loss for one tower of the CIFAR model. This function
-						# constructs the entire CIFAR model but shares the variables across
-						# all towers.
-						loss = tower_loss(scope, image_batch, label_batch)
-						
-						# Reuse variables for the next tower.
-						tf.get_variable_scope().reuse_variables()
-						
-						# Retain the summaries from the final tower.
-						summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)
-						
-						# Calculate the gradients for the batch of data on this CIFAR tower.
-						grads = opt.compute_gradients(loss)
-						
-						# Keep track of the gradients across all towers.
-						tower_grads.append(grads)
-		
-		# We must calculate the mean of each gradient. Note that this is the
-		# synchronization point across all towers.
-		grads = average_gradients(tower_grads)
-		
-		# Add a summary to track the learning rate.
-		summaries.append(tf.summary.scalar('learning_rate', lr))
-		
-		# Add histograms for gradients.
-		for grad, var in grads:
-			if grad is not None:
-				summaries.append(tf.summary.histogram(var.op.name + '/gradients', grad))
-		
-		# Apply the gradients to adjust the shared variables.
-		apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
-		
-		# Add histograms for trainable variables.
-		for var in tf.trainable_variables():
-			summaries.append(tf.summary.histogram(var.op.name, var))
-		
-		# Track the moving averages of all trainable variables.
-		variable_averages = tf.train.ExponentialMovingAverage(
-				cifar10.MOVING_AVERAGE_DECAY, global_step)
-		variables_averages_op = variable_averages.apply(tf.trainable_variables())
-		
-		# Group all updates to into a single train op.
-		train_op = tf.group(apply_gradient_op, variables_averages_op)
-		
-		# Create a saver.
-		saver = tf.train.Saver(tf.global_variables())
-		
-		# Build the summary operation from the last tower summaries.
-		summary_op = tf.summary.merge(summaries)
-		
-		# Build an initialization operation to run below.
-		init = tf.global_variables_initializer()
-		
-		# Start running operations on the Graph. allow_soft_placement must be set to
-		# True to build towers on GPU, as some of the ops do not have GPU
-		# implementations.
-		sess = tf.Session(config=tf.ConfigProto(
-				allow_soft_placement=True,
-				log_device_placement=FLAGS.log_device_placement))
-		sess.run(init)
-		
-		# Start the queue runners.
-		tf.train.start_queue_runners(sess=sess)
-		
-		summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
-		
-		for step in range(FLAGS.max_steps):
-			start_time = time.time()
-			_, loss_value = sess.run([train_op, loss])
-			duration = time.time() - start_time
-			
-			assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
-			
-			if step % 10 == 0:
-				num_examples_per_step = FLAGS.batch_size * FLAGS.num_gpus
-				examples_per_sec = num_examples_per_step / duration
-				sec_per_batch = duration / FLAGS.num_gpus
-				
-				format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f '
-				              'sec/batch)')
-				print(format_str % (datetime.now(), step, loss_value,
-				                    examples_per_sec, sec_per_batch))
-			
-			if step % 100 == 0:
-				summary_str = sess.run(summary_op)
-				summary_writer.add_summary(summary_str, step)
-			
-			# Save the model checkpoint periodically.
-			if step % 1000 == 0 or (step + 1) == FLAGS.max_steps:
-				checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
-				saver.save(sess, checkpoint_path, global_step=step)
+		print('Successfully downloaded', filename, statinfo.st_size, 'bytes.')
+	
+	extracted_dir_path = os.path.join(dataset_directory, 'cifar-10-batches-bin')
+	if not os.path.exists(extracted_dir_path):
+		tarfile.open(filepath, 'r:gz').extractall(dataset_directory)
+	
+	dataset_directory = extracted_dir_path
 
 
 def train(epoch):
@@ -504,6 +534,15 @@ def train(epoch):
 	:param epoch: The current epoch
 	:type epoch: int
 	"""
+	
+	def lr_dict(ep):
+		if ep < 80:
+			return 0.1
+		elif ep < 120:
+			return 0.01
+		else:
+			return 0.001
+	
 	with tf.Graph().as_default(), tf.device('/cpu:0'):
 		# Create a variable to count the number of train() calls. This equals the
 		# number of batches processed * FLAGS.num_gpus.
@@ -512,38 +551,24 @@ def train(epoch):
 				initializer=tf.constant_initializer(0), trainable=False)
 		
 		global tensorboard_train_counter
-		batch_count = int(math.ceil(len(train_x) / NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN))
+		batch_count = int(math.ceil(_DATA_LEN / _TOTAL_BATCH))
 		
-		images, labels = cifar10.inputs(eval_data=False)
-		
-		train_xs, train_ys = tf.train.batch(
-				[images, labels],
-				NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN,
-				allow_smaller_final_batch=True,
-				name="batch_queue"
-		)
-		
-		
-		batch_queue = tf.contrib.slim.prefetch_queue.prefetch_queue(
-				[train_xs, train_ys], capacity=2 * FLAGS.num_gpus)
-
 		for s in range(batch_count):
 			# batch_xs = train_x[s * _TOTAL_BATCH: (s + 1) * _TOTAL_BATCH]
 			# batch_ys = train_y[s * _TOTAL_BATCH: (s + 1) * _TOTAL_BATCH]
-			batch_xs, batch_ys = batch_queue.dequeue()
 			
 			start_time = time()
 			summery, _, batch_loss, batch_acc = sess.run(
 					[merged, optimizer, loss, accuracy],
-					feed_dict={x: batch_xs, y: batch_ys, keep_prob: 0.5})
+					feed_dict={keep_prob: 0.7, is_train: True, learning_rate: lr_dict(epoch)})
 			duration = time() - start_time
 			train_writer.add_summary(summery, global_step=tensorboard_train_counter)
 			tensorboard_train_counter += 1
 			
-			if s % 10 == 0:
+			if s % 20 == 10:
 				percentage = int(round((s / batch_count) * 100))
-				msg = "Epoch {}: step: {} , batch_acc = {} , batch loss = {}"
-				print(msg.format(epoch, s, batch_acc, batch_loss))
+				msg = "Epoch {epoch:03d}: step: {step:03d} , batch_acc = {acc:02.5f} , batch loss = {loss:02.5f}"
+				print(msg.format(epoch=epoch, step=s, acc=batch_acc, loss=batch_loss))
 		
 		test_and_save(epoch)
 
@@ -561,20 +586,18 @@ def test_and_save(epoch):
 	
 	i = 0
 	predicted_class = np.zeros(shape=len(test_x), dtype=np.int)
-	batch_queue = tf.contrib.slim.prefetch_queue.prefetch_queue(
-			[train_x, train_y], capacity=3 * FLAGS.num_gpus)
 	while i < len(test_x):
 		# run_metadata = tf.RunMetadata()
 		j = min(i + _TOTAL_BATCH, len(test_x))
-		# batch_xs = test_x[i:j, :]
-		# batch_ys = test_y[i:j, :]
-		batch_xs, batch_ys = batch_queue.dequeue()
+		batch_xs = test_x[i:j, :]
+		batch_ys = test_y[i:j, :]
 		summary, predicted_class[i:j] = sess.run(
 				[merged, y_pred_cls],
-				feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1},
+				feed_dict={keep_prob: 1, is_train: False},
 				options=run_options  # ,
 				# run_metadata=run_metadata
 		)
+		
 		# test_writer.add_run_metadata(run_metadata, "epoch{}:step{}".format(epoch, i))
 		i = j
 	
@@ -587,6 +610,9 @@ def test_and_save(epoch):
 	mes = "\nEpoch {} - accuracy: {:.2f}% ({}/{})"
 	print(mes.format((epoch + 1), acc, correct_numbers, len(test_x)))
 	
+	with open(file_name_date, 'a' if os.path.exists(file_name_date) else 'w') as f:
+		f.writelines(mes.format((epoch + 1), acc, correct_numbers, len(test_x)))
+	
 	if global_accuracy != 0 and global_accuracy < acc:
 		mes = "This epoch receive better accuracy: {:.2f} > {:.2f}. Saving session..."
 		print(mes.format(acc, global_accuracy))
@@ -595,6 +621,11 @@ def test_and_save(epoch):
 		if not os.path.exists(save_folder):
 			os.mkdir(save_folder)
 		saver.save(sess, os.path.join(save_folder, save_file))
+		with open(os.path.join(save_folder, 'hyper_params'), 'wb') as f:
+			hyper_params = {
+				'epoch': epoch
+			}
+			pickle.dump(hyper_params, f)
 	
 	elif global_accuracy == 0:
 		global_accuracy = acc
@@ -605,21 +636,35 @@ def test_and_save(epoch):
 # GLOBALS
 _NUM_CLASSES = 10
 
+_IMAGE_SIZE = 32
+_IMAGE_CHANNELS = 3
+
+DATA_URL = 'https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
+dataset_directory = tmp_path + "data_set/" + "cifar_10/"
+
 # PARAMS
-NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 128
+_BATCH_SIZE = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 512 + 128
 _EPOCH = 5
 _NUM_GPUS = 4
 _TOTAL_BATCH = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * _NUM_GPUS
+_DATA_LEN = 50000
 
-train_x, train_y = get_data_set("train")
+maybe_download_and_extract()
+# train_x, train_y = get_data_set("train", distortion=False)
+train_x, train_y = distorted_inputs(data_dir=dataset_directory, batch_size=_BATCH_SIZE)
+train_x = tf.reshape(train_x, [train_x.shape[0], reduce((lambda a, b: a * b), train_x.shape[1:])])
+
+
 test_x, test_y = get_data_set("test")
-x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, keep_prob = model()
+x, y, loss, optimizer, correct_prediction, accuracy, y_pred_cls, avg_grads, keep_prob, is_train, learning_rate = model()
 global_accuracy = 0
-
 
 merged = tf.summary.merge_all()
 train_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/train', sess.graph)
 test_writer = tf.summary.FileWriter(tmp_path + 'tensorboard/hw2/test')
+
+file_name_date = str(_EPOCH) + '_' + str(datetime.now().year) + str(datetime.now().month) + str(
+	datetime.now().day) + str(datetime.now().hour) + '.txt'
 
 saver = tf.train.Saver()
 save_path = 'saves/'
@@ -648,17 +693,16 @@ def get_total_parameters():
 		f.write(str(total_parameters))
 
 
-
-
 # input()
 
 
 def main(args=None):
-	global _EPOCH, _NUM_GPUS, _TOTAL_BATCH, save_folder
+	global _EPOCH, _NUM_GPUS, _TOTAL_BATCH, save_folder, file_name_date
 	# if tf.gfile.Exists(tmp_path + "tensorboard/hw2"):
 	# 	tf.gfile.DeleteRecursively(tmp_path + "tensorboard/hw2")
 	# tf.gfile.MakeDirs(tmp_path + "tensorbaord/hw2")
 	
+	was_epochs = 0
 	# Setting the args
 	if args is not None:
 		if args.load:
@@ -668,12 +712,20 @@ def main(args=None):
 				print('files to read not found. starting from the begining. ')
 			else:
 				print('restoring last check point')
+				
+				with open(os.path.join(read_file, 'hyper_params'), 'rb') as f:
+					hyper_params = pickle.load(f)
+				was_epochs = hyper_params['epoch']
+				
 				saver.restore(sess, os.path.join(read_file, 'save.ckpt'))
 				
 				save_folder = read_file
 		
 		_EPOCH = args.epochs
 		_NUM_GPUS = args.gpus
+		
+		file_name_date = str(_EPOCH) + '_' + str(datetime.now().year) + str(datetime.now().month) + str(
+				datetime.now().day) + str(datetime.now().hour) + '.txt'
 	else:
 		_EPOCH = 5
 		_NUM_GPUS = 4
@@ -684,14 +736,14 @@ def main(args=None):
 	get_total_parameters()
 	
 	start = time()
-	for i in range(_EPOCH):
-		print("\nEpoch: {0}/{1}\n".format((i + 1), _EPOCH))
+	for i in range(was_epochs, _EPOCH):
+		print("\nEpoch: {0:03}/{1:03}\n".format((i + 1), _EPOCH))
 		start_time = time()
 		train(i)
-		print('epoch %d took: %d seconds' % (i, time() - start_time))
+		print('Epoch {epoch:04d} took: {sec:02.4f} seconds'.format(epoch=i, sec=(time() - start_time)))
 	
 	length = time() - start
-	print("{0} Epoches took {1}sec. avg of {2}sec per epoch".format(_EPOCH, length, length / _EPOCH))
+	print("{0} Epochs took {1}sec. avg of {2}sec per epoch".format(_EPOCH, length, length / _EPOCH))
 
 
 if __name__ == "__main__":

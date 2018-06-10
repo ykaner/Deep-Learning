@@ -15,7 +15,10 @@ def variable_summaries(var):
 			tf.summary.histogram('histogram', var)
 
 
-def conv2d_layer(input_tensor, weights_shape, layer_name, strides=[1, 1, 1, 1], padding="SAME", act=tf.nn.relu):
+def conv2d_layer(input_tensor, weights_shape, layer_name, strides=None, padding="SAME", batch_n=False, is_train=True,
+                 act=tf.nn.relu):
+	if strides is None:
+		strides = [1, 1, 1, 1]
 	with tf.variable_scope(layer_name):
 		# This Variable will hold the state of the weights for the layer
 		with tf.variable_scope('weights'):
@@ -29,10 +32,27 @@ def conv2d_layer(input_tensor, weights_shape, layer_name, strides=[1, 1, 1, 1], 
 			                           name="pre_activations") + biases
 			with tf.device('/cpu:0'):
 				tf.summary.histogram('pre_activations', preactivate)
+		if batch_n:
+			with tf.variable_scope('batch_normalization'):
+				mean, var = tf.nn.moments(preactivate, [0], name='maen_var')
+				z = tf.div(preactivate - mean, tf.sqrt(var + 1e-4))
+				betta = tf.get_variable(name='betta', shape=weights_shape[-1], initializer=tf.zeros_initializer())
+				gamma = tf.get_variable(name='gamma', shape=weights_shape[-1], initializer=tf.ones_initializer())
+				preactivate = tf.add(tf.multiply(z, gamma), betta)
+				# preactivate = tf.nn.batch_normalization(preactivate, mean, var, betta, gamma, 1e-3, name='batch_norm')
 		activations = act(preactivate, name='activation')
 		with tf.device('/cpu:0'):
 			tf.summary.histogram('activations', activations)
 		return activations
+
+
+def shortcut(input_tensor, out_shape, layer_name, option='A'):
+	option = option.upper()
+	
+	pad = (input_tensor.shape[-1] - out_shape[-1]) // 2
+	
+	if option == 'A':
+	
 
 
 def pool_layer(input_tensor, ksize, strides, layer_name, padding="SAME"):
@@ -43,12 +63,15 @@ def pool_layer(input_tensor, ksize, strides, layer_name, padding="SAME"):
 # We can't initialize these variables to 0 - the network will get stuck.
 def weight_variable(shape, stddev=0.1, name="weights"):
 	"""Create a weight variable with appropriate initialization."""
-	return tf.get_variable(name=name, shape=shape, initializer=tf.truncated_normal_initializer(stddev=stddev))
+	reg_betta = 0.0001
+	regularizer = tf.contrib.layers.l2_regularizer(reg_betta)
+	return tf.get_variable(name=name, shape=shape, initializer=tf.truncated_normal_initializer(stddev=stddev),
+	                       regularizer=regularizer)
 
 
 def bias_variable(shape, name='variable'):
 	"""Create a bias variable with appropriate initialization."""
-	return tf.get_variable(name=name, shape=shape, initializer=tf.truncated_normal_initializer())
+	return tf.get_variable(name=name, shape=shape, initializer=tf.truncated_normal_initializer(stddev=0.1))
 
 # def nn_layer(input_tensor, input_dim, output_dim, layer_name, act=tf.nn.relu):
 # 	"""Reusable code for making a simple neural net layer.
