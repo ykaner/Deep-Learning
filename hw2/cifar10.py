@@ -38,6 +38,7 @@ import sys
 import tarfile
 
 from . import cifar10_input
+from .. import utils
 import tensorflow as tf
 from six.moves import urllib
 
@@ -169,77 +170,111 @@ def inputs(eval_data):
 
 
 def inference(images):
-	"""
-	Build the CIFAR-10 model.
-	
-	:arg images: Images returned from distorted_inputs() or inputs().
-	
-	:returns: Logits.
-	"""
-	# We instantiate all variables using tf.get_variable() instead of
-	# tf.Variable() in order to share variables across multiple GPU training runs.
-	# If we only ran this model on a single GPU, we could simplify this function
-	# by replacing all instances of tf.get_variable() with tf.Variable().
-	
-	# conv1
-	with tf.variable_scope('conv1') as scope:
-		kernel = _variable_with_weight_decay('weights', shape=[5, 5, 3, 64], stddev=5e-2, wd=None)
-		conv = tf.nn.conv2d(images, kernel, [1, 1, 1, 1], padding='SAME')
-		biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.0))
-		pre_activation = tf.nn.bias_add(conv, biases)
-		conv1 = tf.nn.relu(pre_activation, name=scope.name)
-		_activation_summary(conv1)
-	
-	# pool1
-	pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
-	
-	# norm1
-	norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75, name='norm1')
-	
-	# conv2
-	with tf.variable_scope('conv2') as scope:
-		kernel = _variable_with_weight_decay('weights', shape=[5, 5, 64, 64], stddev=5e-2, wd=None)
-		conv = tf.nn.conv2d(norm1, kernel, [1, 1, 1, 1], padding='SAME')
-		biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.1))
-		pre_activation = tf.nn.bias_add(conv, biases)
-		conv2 = tf.nn.relu(pre_activation, name=scope.name)
-		_activation_summary(conv2)
-	
-	# norm2
-	norm2 = tf.nn.lrn(conv2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75, name='norm2')
-	
-	# pool2
-	pool2 = tf.nn.max_pool(norm2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool2')
-	
-	# local3
-	with tf.variable_scope('local3') as scope:
-		# Move everything into depth so we can perform a single matrix multiply.
-		reshape = tf.reshape(pool2, [images.get_shape().as_list()[0], -1])
-		dim = reshape.get_shape()[1].value
+	_NUM_CLASSES = 10
+	keep_prob = 1.0
+	net_option = 'A'
+	with tf.variable_scope('ResNet'):
+		conv0 = utils.tensorboard.conv2d_layer(images, [3, 3, 3, 16], layer_name="conv_0", batch_n=False)
 		
-		weights = _variable_with_weight_decay('weights', shape=[dim, 384], stddev=0.04, wd=0.004)
-		biases = _variable_on_cpu('biases', [384], tf.constant_initializer(0.1))
-		local3 = tf.nn.relu(tf.matmul(reshape, weights) + biases, name=scope.name)
-		_activation_summary(local3)
+		def conv1_act(out, name):
+			return tf.nn.relu(out + conv0, name)
+		
+		conv1 = utils.tensorboard.conv2d_layer(conv0, [3, 3, 16, 16], layer_name="conv_1", batch_n=True,
+		                                       act=tf.nn.relu)
+		
+		conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", batch_n=True,
+		                                         act=conv1_act)
+		
+		shortcut1_1 = conv1_1
+		
+		def conv1_2_act(out, name):
+			return tf.nn.relu(out + shortcut1_1, name)
+		
+		conv1_2 = utils.tensorboard.conv2d_layer(conv1_1, [3, 3, 16, 16], layer_name="conv_1_2", batch_n=True,
+		                                         act=tf.nn.relu)
+		
+		conv1_3 = utils.tensorboard.conv2d_layer(conv1_2, [3, 3, 16, 16], layer_name="conv_1_3", batch_n=True,
+		                                         act=conv1_2_act)
+		
+		shortcut2 = utils.tensorboard.shortcut(conv1_3, [16, 32], layer_name='shortcut2', option=net_option)
+		
+		def conv2_act(out, name):
+			return tf.nn.relu(out + shortcut2, name)
+		
+		conv2 = utils.tensorboard.conv2d_layer(conv1_3, [3, 3, 16, 32], layer_name="conv_2", strides=[1, 2, 2, 1],
+		                                       batch_n=True, act=tf.nn.relu)
+		
+		conv2_1 = utils.tensorboard.conv2d_layer(conv2, [3, 3, 32, 32], layer_name="conv_2_1", batch_n=True,
+		                                         act=conv2_act)
+		
+		shortcut2_2 = conv2_1
+		
+		def conv2_2_act(out, name):
+			return tf.nn.relu(out + shortcut2_2, name)
+		
+		conv2_2 = utils.tensorboard.conv2d_layer(conv2_1, [3, 3, 32, 32], layer_name="conv_2_2", batch_n=True,
+		                                         act=tf.nn.relu)
+		
+		conv2_3 = utils.tensorboard.conv2d_layer(conv2_2, [3, 3, 32, 32], layer_name="conv_2_3", batch_n=True,
+		                                         act=conv2_2_act)
+		
+		shortcut2_3 = conv2_3
+		
+		def conv2_3_act(out, name):
+			return tf.nn.relu(out + shortcut2_3, name)
+		
+		conv2_4 = utils.tensorboard.conv2d_layer(conv2_3, [3, 3, 32, 32], layer_name="conv_2_4", batch_n=True,
+		                                         act=tf.nn.relu)
+		
+		conv2_5 = utils.tensorboard.conv2d_layer(conv2_4, [3, 3, 32, 32], layer_name="conv_2_5", batch_n=True,
+		                                         act=conv2_3_act)
+		
+		shortcut3 = utils.tensroboard.shortcut(conv2_5, [32, 64], layer_name='shortcut3', option=net_option)
+		
+		def conv3_act(out, name):
+			return tf.nn.relu(out + shortcut3, name)
+		
+		conv3 = utils.tensorboard.conv2d_layer(conv2_5, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1],
+		                                       batch_n=True, act=tf.nn.relu)
+		
+		conv3_1 = utils.tensorboard.conv2d_layer(conv3, [3, 3, 64, 64], layer_name="conv_3_1", batch_n=True,
+		                                         act=conv3_act)
+		
+		shortcut3_2 = conv3_1
+		
+		def conv3_2_act(out, name):
+			return tf.nn.relu(out + shortcut3_2, name)
+		
+		conv3_2 = utils.tensorboard.conv2d_layer(conv3_1, [3, 3, 64, 64], layer_name="conv_3_2", batch_n=True,
+		                                         act=tf.nn.relu)
+		
+		conv3_3 = utils.tensorboard.conv2d_layer(conv3_2, [3, 3, 64, 64], layer_name="conv_3_3", batch_n=True,
+		                                         act=conv3_2_act)
+		
+		def conv3_3_act(out, name):
+			return tf.nn.relu(out + conv3_3, name)
+		
+		conv3_4 = utils.tensorboard.conv2d_layer(conv3_3, [3, 3, 64, 64], layer_name="conv_3_4", batch_n=True,
+		                                         act=tf.nn.relu)
+		
+		conv3_5 = utils.tensorboard.conv2d_layer(conv3_4, [3, 3, 64, 64], layer_name="conv_3_5", batch_n=True,
+		                                         act=conv3_3_act)
+		
+		gap = tf.layers.average_pooling2d(conv3_5, [8, 8], [8, 8], padding='VALID', name='gap')
+		
+		flat = tf.reshape(gap, [-1, 64], name="flat")
+		
+		with tf.variable_scope('fc_1'):
+			fc = tf.nn.relu(tf.layers.dense(inputs=flat, units=32, name="dense_layer"),
+			                name="relu")  # , activation=tf.nn.relu)
+			drop4 = tf.nn.dropout(fc, keep_prob, name="dropout")
+		
+		with tf.device('cpu:0'):
+			tf.summary.histogram("drop4", drop4)
+		
+		logits = tf.nn.softmax(tf.layers.dense(inputs=drop4, units=_NUM_CLASSES), name="softmax")
 	
-	# local4
-	with tf.variable_scope('local4') as scope:
-		weights = _variable_with_weight_decay('weights', shape=[384, 192], stddev=0.04, wd=0.004)
-		biases = _variable_on_cpu('biases', [192], tf.constant_initializer(0.1))
-		local4 = tf.nn.relu(tf.matmul(local3, weights) + biases, name=scope.name)
-		_activation_summary(local4)
-	
-	# linear layer(WX + b),
-	# We don't apply softmax here because
-	# tf.nn.sparse_softmax_cross_entropy_with_logits accepts the unscaled logits
-	# and performs the softmax internally for efficiency.
-	with tf.variable_scope('softmax_linear') as scope:
-		weights = _variable_with_weight_decay('weights', [192, NUM_CLASSES], stddev=1 / 192.0, wd=None)
-		biases = _variable_on_cpu('biases', [NUM_CLASSES], tf.constant_initializer(0.0))
-		softmax_linear = tf.add(tf.matmul(local4, weights), biases, name=scope.name)
-		_activation_summary(softmax_linear)
-	
-	return softmax_linear
+	return logits
 
 
 def loss(logits, labels):

@@ -130,12 +130,10 @@ def average_gradients(tower_grads):
 	return average_grads
 
 
-def ResNet(_x, keep_prob, is_train=False, reuse=False):
+def ResNet(images, keep_prob, is_train=False, reuse=False):
+	net_option = 'A'
 	with tf.variable_scope('ResNet', reuse=reuse):
-		def no_act(val, name=''):
-			return val
-		
-		conv0 = utils.tensorboard.conv2d_layer(_x, [3, 3, 3, 16], layer_name="conv_0", batch_n=False, is_train=is_train)
+		conv0 = utils.tensorboard.conv2d_layer(images, [3, 3, 3, 16], layer_name="conv_0", batch_n=False, is_train=is_train)
 		
 		def conv1_act(out, name):
 			return tf.nn.relu(out + conv0, name)
@@ -146,21 +144,18 @@ def ResNet(_x, keep_prob, is_train=False, reuse=False):
 		conv1_1 = utils.tensorboard.conv2d_layer(conv1, [3, 3, 16, 16], layer_name="conv_1_1", batch_n=True,
 		                                         is_train=is_train, act=conv1_act)
 		
+		shortcut1_1 = conv1_1
+		
 		def conv1_2_act(out, name):
-			return tf.nn.relu(out + conv1_1, name)
+			return tf.nn.relu(out + shortcut1_1, name)
 		
 		conv1_2 = utils.tensorboard.conv2d_layer(conv1_1, [3, 3, 16, 16], layer_name="conv_1_2", batch_n=True,
 		                                         is_train=is_train, act=tf.nn.relu)
 		
 		conv1_3 = utils.tensorboard.conv2d_layer(conv1_2, [3, 3, 16, 16], layer_name="conv_1_3", batch_n=True,
 		                                         is_train=is_train, act=conv1_2_act)
-		
-		def no_act(val, name=''):
-			return val
-		
-		shortcut2 = utils.tensorboard.conv2d_layer(conv1_3, [1, 1, 16, 32], layer_name="shortcut2",
-		                                           strides=[1, 2, 2, 1],
-		                                           act=no_act)
+				
+		shortcut2 = utils.tensorboard.shortcut(conv1_3, [16, 32], layer_name='shortcut2', option=net_option)
 		
 		def conv2_act(out, name):
 			return tf.nn.relu(out + shortcut2, name)
@@ -194,15 +189,12 @@ def ResNet(_x, keep_prob, is_train=False, reuse=False):
 		conv2_5 = utils.tensorboard.conv2d_layer(conv2_4, [3, 3, 32, 32], layer_name="conv_2_5", batch_n=True,
 		                                         is_train=is_train, act=conv2_3_act)
 		
-		pool2 = conv2_5  # max_pool_2x2(conv2_3, name="pool2")
-		
-		shortcut3 = utils.tensorboard.conv2d_layer(pool2, [1, 1, 32, 64], layer_name="shortcut3", strides=[1, 2, 2, 1],
-		                                           act=no_act)
+		shortcut3 = utils.tensroboard.shortcut(conv2_5, [32, 64], layer_name='shortcut3', option=net_option)
 		
 		def conv3_act(out, name):
 			return tf.nn.relu(out + shortcut3, name)
 		
-		conv3 = utils.tensorboard.conv2d_layer(pool2, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1],
+		conv3 = utils.tensorboard.conv2d_layer(conv2_5, [3, 3, 32, 64], layer_name="conv_3", strides=[1, 2, 2, 1],
 		                                       batch_n=True, is_train=is_train,
 		                                       act=tf.nn.relu)
 		
