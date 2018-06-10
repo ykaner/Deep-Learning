@@ -1,5 +1,7 @@
-import tensorflow as tf
 import math
+
+import tensorflow as tf
+
 
 def variable_summaries(var):
 	with tf.device('/cpu:0'):
@@ -44,7 +46,7 @@ def conv2d_layer(input_tensor, weights_shape, layer_name, strides=None, padding=
 				betta = tf.get_variable(name='betta', shape=weights_shape[-1], initializer=tf.zeros_initializer())
 				gamma = tf.get_variable(name='gamma', shape=weights_shape[-1], initializer=tf.ones_initializer())
 				preactivate = tf.add(tf.multiply(z, gamma), betta)
-			# preactivate = tf.nn.batch_normalization(preactivate, mean, var, betta, gamma, 1e-3, name='batch_norm')
+		# preactivate = tf.nn.batch_normalization(preactivate, mean, var, betta, gamma, 1e-3, name='batch_norm')
 		activations = act(preactivate, name='activation')
 		with tf.device('/cpu:0'):
 			tf.summary.histogram('activations', activations)
@@ -57,7 +59,7 @@ def shortcut(input_tensor, shapes, layer_name='shourtcut', option='A'):
 	in_shape, out_shape = shapes
 	
 	with tf.variable_scope(layer_name):
-		pad = (out_shape - in_shape)
+		pad = (out_shape - in_shape) / 2
 		
 		if option == 'A':
 			x = avg_pool_layer(input_tensor, [1, 2, 2, 1], [1, 2, 2, 1], layer_name='shortcut_pool', padding='SAME')
