@@ -257,7 +257,7 @@ def train():
 								batch_rate=sec_per_batch))
 			
 			if step % 100 == 0:
-				summary_str = sess.run(summary_op)
+				summary_str = sess.run(summary_op, feed_dict={lr: lr_dict(step)})
 				summary_writer.add_summary(summary_str, step)
 			
 			# Save the model checkpoint periodically.
