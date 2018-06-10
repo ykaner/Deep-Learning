@@ -1,5 +1,5 @@
 import tensorflow as tf
-
+import cmath as math
 
 def variable_summaries(var):
 	with tf.device('/cpu:0'):
@@ -57,18 +57,20 @@ def shortcut(input_tensor, shapes, layer_name='shourtcut', option='A'):
 	in_shape, out_shape = shapes
 	
 	with tf.variable_scope(layer_name):
-		pad = (out_shape - in_shape) // 2
+		pad = (out_shape - in_shape)
 		
 		if option == 'A':
 			x = avg_pool_layer(input_tensor, [1, 2, 2, 1], [1, 2, 2, 1], layer_name='shortcut_pool', padding='SAME')
 			
-			pads = [[0, 0]] * 3 + [[pad] * 2]
+			pads = [[0, 0]] * 3 + [[math.ceil(pad), math.floor(pad)]]
 			x = tf.pad(x, paddings=pads)
 		
 		elif option == 'C':
 			x = conv2d_layer(input_tensor, [1, 1, in_shape, out_shape], layer_name='shortcut_conv',
 			                 strides=[1, 2, 2, 1], batch_n=False, act=None)
-	
+		
+		else:
+			x = input_tensor
 	return x
 
 
