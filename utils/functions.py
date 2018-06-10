@@ -57,7 +57,7 @@ def shortcut(input_tensor, shapes, layer_name='shourtcut', option='A'):
 	in_shape, out_shape = shapes
 	
 	with tf.variable_scope(layer_name):
-		pad = (in_shape - out_shape) // 2
+		pad = (out_shape - in_shape) // 2
 		
 		if option == 'A':
 			x = avg_pool_layer(input_tensor, [1, 2, 2, 1], [1, 2, 2, 1], layer_name='shortcut_pool', padding='SAME')
