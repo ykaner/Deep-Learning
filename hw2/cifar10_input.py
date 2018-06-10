@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-
-"""Routine for decoding the CIFAR-10 binary file format."""
-
 from __future__ import absolute_import, division, print_function
+
+__doc__ = """Routine for decoding the CIFAR-10 binary file format."""
 
 import os
 

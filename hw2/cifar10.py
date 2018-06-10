@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+from __future__ import absolute_import, division, print_function
 
-"""Builds the CIFAR-10 network.
+__doc__ = """Builds the CIFAR-10 network.
 
 Summary of available functions:
 
@@ -30,8 +31,6 @@ Summary of available functions:
  # Create a graph to run one step of training with respect to the loss.
  train_op = train(loss, global_step)
 """
-# pylint: disable=missing-docstring
-from __future__ import absolute_import, division, print_function
 
 import os
 import re
