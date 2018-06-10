@@ -42,34 +42,29 @@ import re
 import time
 from datetime import datetime
 
-import cifar10
 import numpy as np
 import tensorflow as tf
-from six.moves import xrange  # pylint: disable=redefined-builtin
+from six.moves import range  # pylint: disable=redefined-builtin
 
-FLAGS = tf.app.flags.FLAGS
+from . import cifar10
 
-tf.app.flags.DEFINE_string('train_dir', '/tmp/cifar10_train',
-                           """Directory where to write event logs """
-                           """and checkpoint.""")
-tf.app.flags.DEFINE_integer('max_steps', 1000000,
-                            """Number of batches to run.""")
-tf.app.flags.DEFINE_integer('num_gpus', 1,
-                            """How many GPUs to use.""")
-tf.app.flags.DEFINE_boolean('log_device_placement', False,
-                            """Whether to log device placement.""")
+FLAGS = tf.flags.FLAGS
+
+tf.flags.DEFINE_string('train_dir', '/tmp/cifar10_train', """Directory where to write event logs and checkpoint.""")
+tf.flags.DEFINE_integer('max_steps', 1000000, """Number of batches to run.""")
+tf.flags.DEFINE_integer('num_gpus', 1, """How many GPUs to use.""")
+tf.flags.DEFINE_boolean('log_device_placement', False, """Whether to log device placement.""")
 
 
 def tower_loss(scope, images, labels):
-	"""Calculate the total loss on a single tower running the CIFAR model.
- 
-	Args:
-	  scope: unique prefix string identifying the CIFAR tower, e.g. 'tower_0'
-	  images: Images. 4D tensor of shape [batch_size, height, width, 3].
-	  labels: Labels. 1D tensor of shape [batch_size].
-  
-	Returns:
-	   Tensor of shape [] containing the total loss for a batch of data
+	"""
+	Calculate the total loss on a single tower running the CIFAR model.
+	
+	:arg scope: unique prefix string identifying the CIFAR tower, e.g. 'tower_0'
+	:arg images: Images. 4D tensor of shape [batch_size, height, width, 3].
+	:arg labels: Labels. 1D tensor of shape [batch_size].
+	
+	:returns: Tensor of shape [] containing the total loss for a batch of data
 	"""
 	
 	# Build inference Graph.
@@ -90,24 +85,24 @@ def tower_loss(scope, images, labels):
 	for l in losses + [total_loss]:
 		# Remove 'tower_[0-9]/' from the name in case this is a multi-GPU training
 		# session. This helps the clarity of presentation on tensorboard.
-		loss_name = re.sub('%s_[0-9]*/' % cifar10.TOWER_NAME, '', l.op.name)
+		loss_name = re.sub('{0}_[0-9]*/'.format(cifar10.TOWER_NAME), '', l.op.name)
 		tf.summary.scalar(loss_name, l)
 	
 	return total_loss
 
 
 def average_gradients(tower_grads):
-	"""Calculate the average gradient for each shared variable across all towers.
- 
+	"""
+	Calculate the average gradient for each shared variable across all towers.
+	
 	Note that this function provides a synchronization point across all towers.
- 
-	Args:
-	  tower_grads: List of lists of (gradient, variable) tuples. The outer list
+	
+	:arg tower_grads: List of lists of (gradient, variable) tuples. The outer list
 		is over individual gradients. The inner list is over the gradient
 		calculation for each tower.
-	Returns:
-	   List of pairs of (gradient, variable) where the gradient has been averaged
-	   across all towers.
+	
+	:returns:
+		List of pairs of (gradient, variable) where the gradient has been averaged across all towers.
 	"""
 	average_grads = []
 	for grad_and_vars in zip(*tower_grads):
@@ -139,35 +134,29 @@ def train():
 	with tf.Graph().as_default(), tf.device('/cpu:0'):
 		# Create a variable to count the number of train() calls. This equals the
 		# number of batches processed * FLAGS.num_gpus.
-		global_step = tf.get_variable(
-				'global_step', [],
-				initializer=tf.constant_initializer(0), trainable=False)
+		global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
 		
 		# Calculate the learning rate schedule.
-		num_batches_per_epoch = (cifar10.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN /
-		                         FLAGS.batch_size)
+		num_batches_per_epoch = (cifar10.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN, FLAGS.batch_size)
 		decay_steps = int(num_batches_per_epoch * cifar10.NUM_EPOCHS_PER_DECAY)
 		
 		# Decay the learning rate exponentially based on the number of steps.
-		lr = tf.train.exponential_decay(cifar10.INITIAL_LEARNING_RATE,
-		                                global_step,
-		                                decay_steps,
-		                                cifar10.LEARNING_RATE_DECAY_FACTOR,
-		                                staircase=True)
+		lr = tf.train.exponential_decay(
+				cifar10.INITIAL_LEARNING_RATE, global_step, decay_steps, cifar10.LEARNING_RATE_DECAY_FACTOR,
+				staircase=True)
 		
 		# Create an optimizer that performs gradient descent.
 		opt = tf.train.GradientDescentOptimizer(lr)
 		
 		# Get images and labels for CIFAR-10.
 		images, labels = cifar10.distorted_inputs()
-		batch_queue = tf.contrib.slim.prefetch_queue.prefetch_queue(
-				[images, labels], capacity=2 * FLAGS.num_gpus)
+		batch_queue = tf.contrib.slim.prefetch_queue.prefetch_queue([images, labels], capacity=2 * FLAGS.num_gpus)
 		# Calculate the gradients for each model tower.
 		tower_grads = []
 		with tf.variable_scope(tf.get_variable_scope()):
-			for i in xrange(FLAGS.num_gpus):
-				with tf.device('/gpu:%d' % i):
-					with tf.name_scope('%s_%d' % (cifar10.TOWER_NAME, i)) as scope:
+			for i in range(FLAGS.num_gpus):
+				with tf.device('/gpu:{:d}'.format(i)):
+					with tf.name_scope('{}_{:d}'.format(cifar10.TOWER_NAME, i)) as scope:
 						# Dequeues one batch for the GPU
 						image_batch, label_batch = batch_queue.dequeue()
 						# Calculate the loss for one tower of the CIFAR model. This function
@@ -207,8 +196,7 @@ def train():
 			summaries.append(tf.summary.histogram(var.op.name, var))
 		
 		# Track the moving averages of all trainable variables.
-		variable_averages = tf.train.ExponentialMovingAverage(
-				cifar10.MOVING_AVERAGE_DECAY, global_step)
+		variable_averages = tf.train.ExponentialMovingAverage(cifar10.MOVING_AVERAGE_DECAY, global_step)
 		variables_averages_op = variable_averages.apply(tf.trainable_variables())
 		
 		# Group all updates to into a single train op.
@@ -236,7 +224,7 @@ def train():
 		
 		summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
 		
-		for step in xrange(FLAGS.max_steps):
+		for step in range(FLAGS.max_steps):
 			start_time = time.time()
 			_, loss_value = sess.run([train_op, loss])
 			duration = time.time() - start_time
@@ -248,10 +236,13 @@ def train():
 				examples_per_sec = num_examples_per_step / duration
 				sec_per_batch = duration / FLAGS.num_gpus
 				
-				format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f '
-				              'sec/batch)')
-				print(format_str % (datetime.now(), step, loss_value,
-				                    examples_per_sec, sec_per_batch))
+				print(
+						'{timestamp}: step {step:d}, loss = {loss:.2f} ({example_rate:.1f} examples/sec; {batch_rate:.3f} sec/batch)'.format(
+								timestamp=datetime.now(),
+								step=step,
+								loss=loss_value,
+								example_rate=examples_per_sec,
+								batch_rate=sec_per_batch))
 			
 			if step % 100 == 0:
 				summary_str = sess.run(summary_op)
