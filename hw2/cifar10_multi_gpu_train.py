@@ -149,7 +149,7 @@ def train():
 		
 		# Create an optimizer that performs gradient descent.
 		# opt = tf.train.GradientDescentOptimizer(lr)
-		opt = tf.train.MomentumOptimizer(lr, momentum=0.9, use_nesterov=True, name='Momentum Optimizer')
+		opt = tf.train.MomentumOptimizer(lr, momentum=0.9, use_nesterov=True, name='Momentum_Optimizer')
 		
 		# Get images and labels for CIFAR-10.
 		images, labels = cifar10.distorted_inputs()
