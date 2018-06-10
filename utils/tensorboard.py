@@ -19,6 +19,11 @@ def conv2d_layer(input_tensor, weights_shape, layer_name, strides=None, padding=
                  act=tf.nn.relu):
 	if strides is None:
 		strides = [1, 1, 1, 1]
+	if act is None:
+		def no_act(val, name=''):
+			return val
+		
+		act = no_act
 	with tf.variable_scope(layer_name):
 		# This Variable will hold the state of the weights for the layer
 		with tf.variable_scope('weights'):
@@ -39,20 +44,37 @@ def conv2d_layer(input_tensor, weights_shape, layer_name, strides=None, padding=
 				betta = tf.get_variable(name='betta', shape=weights_shape[-1], initializer=tf.zeros_initializer())
 				gamma = tf.get_variable(name='gamma', shape=weights_shape[-1], initializer=tf.ones_initializer())
 				preactivate = tf.add(tf.multiply(z, gamma), betta)
-				# preactivate = tf.nn.batch_normalization(preactivate, mean, var, betta, gamma, 1e-3, name='batch_norm')
+			# preactivate = tf.nn.batch_normalization(preactivate, mean, var, betta, gamma, 1e-3, name='batch_norm')
 		activations = act(preactivate, name='activation')
 		with tf.device('/cpu:0'):
 			tf.summary.histogram('activations', activations)
 		return activations
 
 
-def shortcut(input_tensor, out_shape, layer_name, option='A'):
+def shortcut(input_tensor, shapes, layer_name='shourtcut', option='A'):
 	option = option.upper()
 	
-	pad = (input_tensor.shape[-1] - out_shape[-1]) // 2
+	in_shape, out_shape = shapes
 	
-	if option == 'A':
+	with tf.variable_scope(layer_name):
+		pad = (in_shape - out_shape) // 2
+		
+		if option == 'A':
+			x = avg_pool_layer(input_tensor, [1, 2, 2, 1], [1, 2, 2, 1], layer_name='shortcut_pool', padding='SAME')
+			
+			pads = [[0, 0]] * 3 + [[pad] * 2]
+			x = tf.pad(x, paddings=pads)
+		
+		elif option == 'C':
+			x = conv2d_layer(input_tensor, [1, 1, in_shape, out_shape], layer_name='shortcut_conv',
+			                 strides=[1, 2, 2, 1], batch_n=False, act=None)
 	
+	return x
+
+
+def avg_pool_layer(input_tensor, ksize, strides, layer_name, padding='SAME'):
+	with tf.variable_scope(layer_name):
+		return tf.nn.avg_pool(input_tensor, ksize=ksize, strides=strides, padding=padding, name='avg_pool')
 
 
 def pool_layer(input_tensor, ksize, strides, layer_name, padding="SAME"):
