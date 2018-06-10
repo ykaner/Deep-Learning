@@ -38,7 +38,7 @@ import sys
 import tarfile
 
 from . import cifar10_input
-from .. import utils
+from ..utils import functions
 import tensorflow as tf
 from six.moves import urllib
 
