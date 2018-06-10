@@ -1,3 +1,4 @@
+import math
 import tensorflow as tf
 
 
@@ -15,10 +16,15 @@ def variable_summaries(var):
 			tf.summary.histogram('histogram', var)
 
 
-def conv2d_layer(input_tensor, weights_shape, layer_name, strides=None, padding="SAME", batch_n=True, is_train=True,
+def conv2d_layer(input_tensor, weights_shape, layer_name, strides=None, padding="SAME", batch_n=False, is_train=True,
                  act=tf.nn.relu):
 	if strides is None:
 		strides = [1, 1, 1, 1]
+	if act is None:
+		def no_act(val, name=''):
+			return val
+		
+		act = no_act
 	with tf.variable_scope(layer_name):
 		# This Variable will hold the state of the weights for the layer
 		with tf.variable_scope('weights'):
@@ -39,11 +45,39 @@ def conv2d_layer(input_tensor, weights_shape, layer_name, strides=None, padding=
 				betta = tf.get_variable(name='betta', shape=weights_shape[-1], initializer=tf.zeros_initializer())
 				gamma = tf.get_variable(name='gamma', shape=weights_shape[-1], initializer=tf.ones_initializer())
 				preactivate = tf.add(tf.multiply(z, gamma), betta)
-				# preactivate = tf.nn.batch_normalization(preactivate, mean, var, betta, gamma, 1e-3, name='batch_norm')
+		# preactivate = tf.nn.batch_normalization(preactivate, mean, var, betta, gamma, 1e-3, name='batch_norm')
 		activations = act(preactivate, name='activation')
 		with tf.device('/cpu:0'):
 			tf.summary.histogram('activations', activations)
 		return activations
+
+
+def shortcut(input_tensor, shapes, layer_name='shourtcut', option='A'):
+	option = option.upper()
+	
+	in_shape, out_shape = shapes
+	
+	with tf.variable_scope(layer_name):
+		pad = (out_shape - in_shape) / 2
+		
+		if option == 'A':
+			x = avg_pool_layer(input_tensor, [1, 2, 2, 1], [1, 2, 2, 1], layer_name='shortcut_pool', padding='SAME')
+			
+			pads = [[0, 0]] * 3 + [[math.ceil(pad), math.floor(pad)]]
+			x = tf.pad(x, paddings=pads)
+		
+		elif option == 'C':
+			x = conv2d_layer(input_tensor, [1, 1, in_shape, out_shape], layer_name='shortcut_conv',
+			                 strides=[1, 2, 2, 1], batch_n=False, act=None)
+		
+		else:
+			x = input_tensor
+	return x
+
+
+def avg_pool_layer(input_tensor, ksize, strides, layer_name, padding='SAME'):
+	with tf.variable_scope(layer_name):
+		return tf.nn.avg_pool(input_tensor, ksize=ksize, strides=strides, padding=padding, name='avg_pool')
 
 
 def pool_layer(input_tensor, ksize, strides, layer_name, padding="SAME"):
@@ -63,70 +97,3 @@ def weight_variable(shape, stddev=0.1, name="weights"):
 def bias_variable(shape, name='variable'):
 	"""Create a bias variable with appropriate initialization."""
 	return tf.get_variable(name=name, shape=shape, initializer=tf.truncated_normal_initializer(stddev=0.1))
-
-# def nn_layer(input_tensor, input_dim, output_dim, layer_name, act=tf.nn.relu):
-# 	"""Reusable code for making a simple neural net layer.
-#
-# 	It does a matrix multiply, bias add, and then uses relu to nonlinearize.
-# 	It also sets up name scoping so that the resultant graph is easy to read,
-# 	and adds a number of summary ops.
-# 	"""
-# 	# Adding a name scope ensures logical grouping of the layers in the graph.
-# 	with tf.variable_scope(layer_name):
-# 		# This Variable will hold the state of the weights for the layer
-# 		with tf.variable_scope('weights'):
-# 			weights = weight_variable([input_dim, output_dim])
-# 			variable_summaries(weights)
-# 		with tf.variable_scope('biases'):
-# 			biases = bias_variable([output_dim])
-# 			variable_summaries(biases)
-# 		with tf.variable_scope('Wx_plus_b'):
-# 			preactivate = tf.matmul(input_tensor, weights) + biases
-# 			tf.summary.histogram('pre_activations', preactivate)
-# 		activations = act(preactivate, name='activation')
-# 		tf.summary.histogram('activations', activations)
-# 		return activations
-
-
-# hidden1 = nn_layer(x, 784, 500, 'layer1')
-
-# with tf.variable_scope('dropout'):
-# 	keep_prob = tf.placeholder(tf.float32)
-# 	tf.summary.scalar('dropout_keep_probability', keep_prob)
-# 	dropped = tf.nn.dropout(hidden1, keep_prob)
-
-# # Do not apply softmax activation yet, see below.
-# y = nn_layer(dropped, 500, 10, 'layer2', act=tf.identity)
-
-# with tf.variable_scope('cross_entropy'):
-# 	The raw formulation of cross-entropy,
-#
-# 	tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(tf.softmax(y)),
-# 	                              reduction_indices=[1]))
-#
-# 	can be numerically unstable.
-#
-# 	So here we use tf.losses.sparse_softmax_cross_entropy on the
-# 	raw logit outputs of the nn_layer above.
-# 	with tf.variable_scope('total'):
-# 		cross_entropy = tf.losses.sparse_softmax_cross_entropy(labels=y_, logits=y)
-
-# tf.summary.scalar('cross_entropy', cross_entropy)
-
-# with tf.variable_scope('train'):
-# 	train_step = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(
-# 			cross_entropy)
-#
-# with tf.variable_scope('accuracy'):
-# 	with tf.variable_scope('correct_prediction'):
-# 		correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
-# 	with tf.variable_scope('accuracy'):
-# 		accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-# tf.summary.scalar('accuracy', accuracy)
-
-# Merge all the summaries and write them out to /tmp/mnist_logs (by default)
-# merged = tf.summary.merge_all()
-# train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train',
-#                                      sess.graph)
-# test_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/test')
-# tf.global_variables_initializer().run()
