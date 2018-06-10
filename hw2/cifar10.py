@@ -161,9 +161,7 @@ def inputs(eval_data):
 	if not FLAGS.data_dir:
 		raise ValueError('Please supply a data_dir')
 	data_dir = os.path.join(FLAGS.data_dir, 'cifar-10-batches-bin')
-	images, labels = cifar10_input.inputs(eval_data=eval_data,
-	                                      data_dir=data_dir,
-	                                      batch_size=FLAGS.batch_size)
+	images, labels = cifar10_input.inputs(eval_data=eval_data, data_dir=data_dir, batch_size=FLAGS.batch_size)
 	if FLAGS.use_fp16:
 		images = tf.cast(images, tf.float16)
 		labels = tf.cast(labels, tf.float16)
@@ -355,8 +353,8 @@ def maybe_download_and_extract():
 	if not os.path.exists(filepath):
 		def _progress(count, block_size, total_size):
 			sys.stdout.write(
-					'\r>> Downloading {} {:.1f}%'.format(filename,
-					                                     float(count * block_size) / float(total_size) * 100.0))
+					'\r>> Downloading {} {:.1f}%'.format(
+							filename, float(count * block_size) / float(total_size) * 100.0))
 			sys.stdout.flush()
 		
 		filepath, _ = urllib.request.urlretrieve(DATA_URL, filepath, _progress)
