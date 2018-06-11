@@ -71,6 +71,12 @@ def tower_loss(scope, images, labels):
 	# Build inference Graph.
 	logits = cifar10.inference(images)
 	
+	with tf.name_scope('total'):
+		y_pred_cls = tf.argmax(logits, axis=1, name="y_pred_cls")
+		
+		correct_prediction = tf.equal(y_pred_cls, tf.argmax(labels, axis=1), name="correct_predictions")
+		accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="accuracy")
+	
 	# Build the portion of the Graph calculating the losses. Note that we will
 	# assemble the total_loss using a custom function below.
 	_ = cifar10.loss(logits, labels)
@@ -89,7 +95,7 @@ def tower_loss(scope, images, labels):
 		loss_name = re.sub('{0}_[0-9]*/'.format(cifar10.TOWER_NAME), '', l.op.name)
 		tf.summary.scalar(loss_name, l)
 	
-	return total_loss
+	return total_loss, accuracy
 
 
 def average_gradients(tower_grads):
@@ -166,7 +172,7 @@ def train():
 						# Calculate the loss for one tower of the CIFAR model. This function
 						# constructs the entire CIFAR model but shares the variables across
 						# all towers.
-						loss = tower_loss(scope, image_batch, label_batch)
+						loss, acc = tower_loss(scope, image_batch, label_batch)
 						
 						# Reuse variables for the next tower.
 						tf.get_variable_scope().reuse_variables()
@@ -239,7 +245,7 @@ def train():
 			
 		for step in range(FLAGS.max_steps):
 			start_time = time.time()
-			_, loss_value = sess.run([train_op, loss], feed_dict={lr: lr_dict(step)})
+			_, loss_value, acc_value = sess.run([train_op, loss, acc], feed_dict={lr: lr_dict(step)})
 			duration = time.time() - start_time
 			
 			assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
@@ -250,10 +256,11 @@ def train():
 				sec_per_batch = duration / FLAGS.num_gpus
 				
 				print(
-						'{timestamp}: step {step:d}, loss = {loss:.2f} ({example_rate:.1f} examples/sec; {batch_rate:.3f} sec/batch)'.format(
+						'{timestamp}: step {step:d}, loss = {loss:.2f}, acc = {acc:f} ({example_rate:.1f} examples/sec; {batch_rate:.3f} sec/batch)'.format(
 								timestamp=datetime.now(),
 								step=step,
 								loss=loss_value,
+								acc=acc_value,
 								example_rate=examples_per_sec,
 								batch_rate=sec_per_batch))
 			
