@@ -81,6 +81,8 @@ def eval_once(saver, summary_writer, top_k_op, summary_op, sess=None, feed_dict=
 				print('No checkpoint file found')
 				return
 		
+		else:
+			global_step = tf.get_variable('global_step')
 		# Start the queue runners.
 		coord = tf.train.Coordinator()
 		try:
