@@ -92,8 +92,10 @@ def shortcut(input_tensor, shapes, layer_name='shourtcut', option='A'):
 			x = tf.pad(x, paddings=pads)
 		
 		elif option == 'B':
+			x = avg_pool_layer(input_tensor, [1, 2, 2, 1], [1, 2, 2, 1], layer_name='shortcut_pool', padding='SAME')
+
 			W_s = weight_variable(shapes)
-			x = tf.matmul(input_tensor, W_s)
+			x = tf.matmul(x, W_s)
 		
 		elif option == 'C':
 			x = conv2d_layer(input_tensor, [1, 1, in_shape, out_shape], layer_name='shortcut_conv',

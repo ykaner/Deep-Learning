@@ -171,7 +171,7 @@ def inputs(eval_data):
 
 def inference(images, keep_prob=1.0):
 	_NUM_CLASSES = 10
-	net_option = 'B'
+	net_option = 'A'
 	with tf.variable_scope('ResNet'):
 		conv0 = functions.conv2d_layer(images, [3, 3, 3, 16], layer_name="conv_0", batch_n=False)
 		
