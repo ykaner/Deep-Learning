@@ -56,7 +56,7 @@ tf.flags.DEFINE_string('train_dir', '/tmp/cifar10_train', """Directory where to 
 tf.flags.DEFINE_integer('max_epochs', 200, """Number of batches to run.""")
 tf.flags.DEFINE_integer('num_gpus', 4, """How many GPUs to use.""")
 tf.flags.DEFINE_boolean('log_device_placement', False, """Whether to log device placement.""")
-tf.flags.DEFINE_integer('max_steps', 100000, 'number of steps to run')
+tf.flags.DEFINE_integer('max_steps', 100000, 'Dont use it. calculated out from max_epochs')
 
 FLAGS.max_steps = math.ceil(FLAGS.max_epochs * cifar10.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size)
 
@@ -148,7 +148,7 @@ def train():
 		global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
 		
 		# Calculate the learning rate schedule.
-		num_batches_per_epoch = (cifar10.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size)
+		num_batches_per_epoch = (cifar10.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN // FLAGS.batch_size)
 		decay_steps = int(num_batches_per_epoch * cifar10.NUM_EPOCHS_PER_DECAY)
 		
 		# Decay the learning rate exponentially based on the number of steps.
