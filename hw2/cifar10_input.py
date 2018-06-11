@@ -163,7 +163,7 @@ def distorted_inputs(data_dir, batch_size):
 		height = IMAGE_SIZE
 		width = IMAGE_SIZE
 		
-		padded_image = tf.pad([[5, 5], [5, 5], [0, 0]])
+		padded_image = tf.pad(reshaped_image, [[5, 5], [5, 5], [0, 0]])
 		
 		# Image processing for training the network. Note the many random
 		# distortions applied to the image.
