@@ -278,38 +278,13 @@ def train():
 			new_epoch = step // num_batches_per_epoch
 			# evaluate if new epoch started
 			if new_epoch > epoch:
+				
 				# save checkpoint
 				checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
 				saver.save(sess, checkpoint_path, global_step=step)
-				
-				epoch = new_epoch
-				new_epoch_time = time.time()
-				print('this epoch took: ' + str(new_epoch_time - epoch_time) + ' seconds')
-				
-				tf.get_variable_scope().reuse_variables()
-				images, labels = cifar10.inputs(eval_data=True)
-				
-				# Build a Graph that computes the logits predictions from the
-				# inference model.
-				logits = cifar10.inference(images)
-				
-				# Calculate predictions.
-				top_k_op = tf.nn.in_top_k(logits, labels, 1)
-				
-				# Restore the moving average version of the learned variables for eval.
-				# variable_averages = tf.train.ExponentialMovingAverage(
-				# 		cifar10.MOVING_AVERAGE_DECAY)
-				# variables_to_restore = variable_averages.variables_to_restore()
-				# saver = tf.train.Saver(variables_to_restore)
-				
-				# Build the summary operation based on the TF collection of Summaries.
-				summary_op = tf.summary.merge_all()
-				
-				summary_writer = tf.summary.FileWriter(FLAGS.eval_dir, g)
-				
-				cifar10_eval.eval_once(saver, summary_writer, top_k_op, summary_op,
-				                       sess, feed_dict={lr: lr_dict(step)}, global_step=step)
-			
+
+				cifar10_eval.main()
+
 			if step % 100 == 0:
 				summary_str = sess.run(summary_op, feed_dict={lr: lr_dict(step)})
 				summary_writer.add_summary(summary_str, step)
