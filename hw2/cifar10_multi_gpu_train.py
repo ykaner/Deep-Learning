@@ -280,7 +280,7 @@ def train():
 			if new_epoch > epoch:
 				epoch = new_epoch
 				new_epoch_time = time.time()
-				print('this epoch took: ' + str(new_epoch_time - epoch_time) + ' time')
+				print('\nthis epoch took: ' + str(new_epoch_time - epoch_time) + ' time')
 				epoch_time = new_epoch_time
 				
 				# save checkpoint
