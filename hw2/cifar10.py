@@ -45,7 +45,7 @@ from six.moves import urllib
 FLAGS = tf.flags.FLAGS
 
 # Basic model parameters.
-tf.flags.DEFINE_integer('batch_size', 64,
+tf.flags.DEFINE_integer('batch_size', 128,
                         """Number of images to process in a batch.""")
 tf.flags.DEFINE_string('data_dir', '/tmp/cifar10_data',
                        """Path to the CIFAR-10 data directory.""")
