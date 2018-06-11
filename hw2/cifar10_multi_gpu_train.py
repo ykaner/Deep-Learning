@@ -56,6 +56,7 @@ tf.flags.DEFINE_string('train_dir', '/tmp/cifar10_train', """Directory where to 
 tf.flags.DEFINE_integer('max_epochs', 200, """Number of batches to run.""")
 tf.flags.DEFINE_integer('num_gpus', 4, """How many GPUs to use.""")
 tf.flags.DEFINE_boolean('log_device_placement', False, """Whether to log device placement.""")
+tf.flags.DEFINE_integer('max_steps', 100000, 'number of steps to run')
 
 FLAGS.max_steps = math.ceil(FLAGS.max_epochs * cifar10.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size)
 
