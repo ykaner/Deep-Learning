@@ -61,7 +61,7 @@ tf.flags.DEFINE_integer('max_steps', 100000, 'Dont use it. calculated out from m
 FLAGS.max_steps = math.ceil(FLAGS.max_epochs * cifar10.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size)
 
 
-def tower_loss(scope, images, labels):
+def tower_loss(scope, images, labels, keep_prob=1.0):
 	"""
 	Calculate the total loss on a single tower running the CIFAR model.
 	
@@ -73,7 +73,7 @@ def tower_loss(scope, images, labels):
 	"""
 	
 	# Build inference Graph.
-	logits = cifar10.inference(images)
+	logits = cifar10.inference(images, keep_prob=keep_prob)
 	
 	with tf.name_scope('total'):
 		y_pred_cls = tf.argmax(logits, axis=1, name="y_pred_cls")
@@ -156,6 +156,8 @@ def train():
 		# 		cifar10.INITIAL_LEARNING_RATE, global_step, decay_steps, cifar10.LEARNING_RATE_DECAY_FACTOR,
 		# 		staircase=True)
 		
+		keep_prob = tf.placeholder(tf.float32, name='keep_prob')
+		
 		lr = tf.placeholder(tf.float32, name='learning_rate')
 		
 		# Create an optimizer that performs gradient descent.
@@ -176,7 +178,7 @@ def train():
 						# Calculate the loss for one tower of the CIFAR model. This function
 						# constructs the entire CIFAR model but shares the variables across
 						# all towers.
-						loss, acc = tower_loss(scope, image_batch, label_batch)
+						loss, acc = tower_loss(scope, image_batch, label_batch, keep_prob=keep_prob)
 						
 						# Reuse variables for the next tower.
 						tf.get_variable_scope().reuse_variables()
@@ -254,7 +256,7 @@ def train():
 		epoch_time = time.time()
 		for step in range(FLAGS.max_steps):
 			start_time = time.time()
-			_, loss_value, acc_value = sess.run([train_op, loss, acc], feed_dict={lr: lr_dict(step)})
+			_, loss_value, acc_value = sess.run([train_op, loss, acc], feed_dict={lr: lr_dict(step), keep_prob: 0.7})
 			duration = time.time() - start_time
 			
 			assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
@@ -292,7 +294,7 @@ def train():
 				print('eval time:' + str(time.time() - ev_time))
 
 			if step % 100 == 0:
-				summary_str = sess.run(summary_op, feed_dict={lr: lr_dict(step)})
+				summary_str = sess.run(summary_op, feed_dict={lr: lr_dict(step), keep_prob: 0.7})
 				summary_writer.add_summary(summary_str, step)
 
 
