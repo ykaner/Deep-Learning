@@ -52,8 +52,8 @@ from . import cifar10_eval
 FLAGS = tf.flags.FLAGS
 
 tf.flags.DEFINE_string('train_dir', '/tmp/cifar10_train', """Directory where to write event logs and checkpoint.""")
-tf.flags.DEFINE_integer('max_steps', 1000000, """Number of batches to run.""")
-tf.flags.DEFINE_integer('num_gpus', 1, """How many GPUs to use.""")
+tf.flags.DEFINE_integer('max_epochs', 200, """Number of batches to run.""")
+tf.flags.DEFINE_integer('num_gpus', 4, """How many GPUs to use.""")
 tf.flags.DEFINE_boolean('log_device_placement', False, """Whether to log device placement.""")
 
 
@@ -138,7 +138,7 @@ def average_gradients(tower_grads):
 
 def train():
 	"""Train CIFAR-10 for a number of steps."""
-	with tf.Graph().as_default(), tf.device('/cpu:0'):
+	with tf.Graph().as_default() as g, tf.device('/cpu:0'):
 		# Create a variable to count the number of train() calls. This equals the
 		# number of batches processed * FLAGS.num_gpus.
 		global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
@@ -245,6 +245,7 @@ def train():
 				return 0.01
 			else:
 				return 0.001
+		
 		epoch = 0
 		for step in range(FLAGS.max_steps):
 			start_time = time.time()
@@ -259,20 +260,42 @@ def train():
 				sec_per_batch = duration / FLAGS.num_gpus
 				
 				print(
-						'{timestamp}: step {step:d}, loss = {loss:.2f}, acc = {acc:f} ({example_rate:.1f} examples/sec; {batch_rate:.3f} sec/batch)'.format(
+						'\r{timestamp}: Epoch-{epoch}, step {step:d}, loss = {loss:.2f}, acc = {acc:f} ({example_rate:.1f} examples/sec; {batch_rate:.3f} sec/batch)'.format(
 								timestamp=datetime.now(),
-								step=step,
+								epoch=epoch,
+								step=step % num_batches_per_epoch,
 								loss=loss_value,
 								acc=acc_value,
 								example_rate=examples_per_sec,
 								batch_rate=sec_per_batch))
 			
 			new_epoch = step // num_batches_per_epoch
+			# evaluate if new epoch started
 			if new_epoch > epoch:
 				epoch = new_epoch
-				cifar10_eval.main()
-
-			
+				
+				images, labels = cifar10.inputs(eval_data=True)
+				
+				# Build a Graph that computes the logits predictions from the
+				# inference model.
+				logits = cifar10.inference(images)
+				
+				# Calculate predictions.
+				top_k_op = tf.nn.in_top_k(logits, labels, 1)
+				
+				# Restore the moving average version of the learned variables for eval.
+				variable_averages = tf.train.ExponentialMovingAverage(
+						cifar10.MOVING_AVERAGE_DECAY)
+				variables_to_restore = variable_averages.variables_to_restore()
+				saver = tf.train.Saver(variables_to_restore)
+				
+				# Build the summary operation based on the TF collection of Summaries.
+				summary_op = tf.summary.merge_all()
+				
+				summary_writer = tf.summary.FileWriter(FLAGS.eval_dir, g)
+				
+				while True:
+					cifar10_eval.eval_once(saver, summary_writer, top_k_op, summary_op, sess)
 			
 			if step % 100 == 0:
 				summary_str = sess.run(summary_op, feed_dict={lr: lr_dict(step)})

@@ -48,7 +48,7 @@ tf.app.flags.DEFINE_string('eval_data', 'test',
                            """Either 'test' or 'train_eval'.""")
 tf.app.flags.DEFINE_string('checkpoint_dir', '/tmp/cifar10_train',
                            """Directory where to read model checkpoints.""")
-tf.app.flags.DEFINE_integer('eval_interval_secs', 60 * 5,
+tf.app.flags.DEFINE_integer('eval_interval_secs', 60 * 2,
                             """How often to run the eval.""")
 tf.app.flags.DEFINE_integer('num_examples', 10000,
                             """Number of examples to run.""")
@@ -56,7 +56,7 @@ tf.app.flags.DEFINE_boolean('eval_once', False,
                             """Whether to run eval only once.""")
 
 
-def eval_once(saver, summary_writer, top_k_op, summary_op):
+def eval_once(saver, summary_writer, top_k_op, summary_op, sess=None):
 	"""Run Eval once.
  
 	Args:
@@ -64,8 +64,9 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
 	  summary_writer: Summary writer.
 	  top_k_op: Top K op.
 	  summary_op: Summary op.
+	  sess: session to run on if available.
 	"""
-	with tf.Session() as sess:
+	with tf.Session() if sess is None else sess as sess:
 		ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
 		if ckpt and ckpt.model_checkpoint_path:
 			# Restores from checkpoint
@@ -137,7 +138,7 @@ def evaluate():
 		
 		while True:
 			eval_once(saver, summary_writer, top_k_op, summary_op)
-			if FLAGS.run_once:
+			if FLAGS.eval_once:
 				break
 			time.sleep(FLAGS.eval_interval_secs)
 
