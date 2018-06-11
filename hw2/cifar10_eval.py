@@ -56,7 +56,7 @@ tf.app.flags.DEFINE_boolean('eval_once', False,
                             """Whether to run eval only once.""")
 
 
-def eval_once(saver, summary_writer, top_k_op, summary_op, sess=None):
+def eval_once(saver, summary_writer, top_k_op, summary_op, sess=None, feed_dict=None):
 	"""Run Eval once.
  
 	Args:
@@ -103,7 +103,7 @@ def eval_once(saver, summary_writer, top_k_op, summary_op, sess=None):
 			print('%s: precision @ 1 = %.3f' % (datetime.now(), precision))
 			
 			summary = tf.Summary()
-			summary.ParseFromString(sess.run(summary_op))
+			summary.ParseFromString(sess.run(summary_op, feed_dict=feed_dict))
 			summary.value.add(tag='Precision @ 1', simple_value=precision)
 			summary_writer.add_summary(summary, global_step)
 		except Exception as e:  # pylint: disable=broad-except

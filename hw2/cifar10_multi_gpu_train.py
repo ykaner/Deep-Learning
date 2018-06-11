@@ -308,7 +308,7 @@ def train():
 				
 				summary_writer = tf.summary.FileWriter(FLAGS.eval_dir, g)
 				
-				cifar10_eval.eval_once(saver, summary_writer, top_k_op, summary_op, sess)
+				cifar10_eval.eval_once(saver, summary_writer, top_k_op, summary_op, sess, feed_dict={lr: lr_dict(step)})
 			
 			if step % 100 == 0:
 				summary_str = sess.run(summary_op, feed_dict={lr: lr_dict(step)})
