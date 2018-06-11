@@ -24,7 +24,8 @@ def residual_block(input_tensor, ksize, shapes, dropout=None, layer_name='res_bl
 		dropout = 1
 	
 	with tf.variable_scope(layer_name):
-		shortcut_1 = input_tensor if shape_in == shape_out else shortcut(input_tensor, shapes, layer_name='shortcut', option=option)
+		shortcut_1 = input_tensor if shape_in == shape_out else shortcut(input_tensor, shapes, layer_name='shortcut',
+		                                                                 option=option)
 		
 		def conv_act(out, name):
 			return tf.nn.relu(out + shortcut_1, name)
@@ -35,7 +36,7 @@ def residual_block(input_tensor, ksize, shapes, dropout=None, layer_name='res_bl
 		drop_layer = tf.nn.dropout(conv1, dropout)
 		
 		conv2 = conv2d_layer(drop_layer, [ksize, ksize, shape_out, shape_out], layer_name="conv_2", batch_n=True,
-		                                 act=conv_act)
+		                     act=conv_act)
 	
 	return conv2
 
@@ -89,6 +90,10 @@ def shortcut(input_tensor, shapes, layer_name='shourtcut', option='A'):
 			
 			pads = [[0, 0]] * 3 + [[math.ceil(pad), math.floor(pad)]]
 			x = tf.pad(x, paddings=pads)
+		
+		elif option == 'B':
+			W_s = weight_variable(shapes)
+			x = tf.matmul(input_tensor, W_s)
 		
 		elif option == 'C':
 			x = conv2d_layer(input_tensor, [1, 1, in_shape, out_shape], layer_name='shortcut_conv',
