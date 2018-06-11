@@ -189,7 +189,7 @@ def inference(images, keep_prob=1.0):
 		
 		block3_3 = functions.residual_block(block3_2, 1, [64, 64], dropout=keep_prob, layer_name='residaul_block3_3', option=net_option)
 		
-		gap = tf.layers.average_pooling2d(block3_3, [6, 6], [6, 6], padding='VALID', name='gap')
+		gap = tf.layers.average_pooling2d(block3_3, [8, 8], [8, 8], padding='VALID', name='gap')
 		
 		flat = tf.reshape(gap, [-1, 64], name="flat")
 		
