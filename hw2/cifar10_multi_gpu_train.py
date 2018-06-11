@@ -287,7 +287,9 @@ def train():
 				checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
 				saver.save(sess, checkpoint_path, global_step=step)
 
+				ev_time = time.time()
 				cifar10_eval.main()
+				print('eval time:' + str(time.time() - ev_time))
 
 			if step % 100 == 0:
 				summary_str = sess.run(summary_op, feed_dict={lr: lr_dict(step)})
