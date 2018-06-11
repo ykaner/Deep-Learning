@@ -42,6 +42,7 @@ import re
 import time
 from datetime import datetime
 
+import math
 import numpy as np
 import tensorflow as tf
 from six.moves import range  # pylint: disable=redefined-builtin
@@ -55,6 +56,8 @@ tf.flags.DEFINE_string('train_dir', '/tmp/cifar10_train', """Directory where to 
 tf.flags.DEFINE_integer('max_epochs', 200, """Number of batches to run.""")
 tf.flags.DEFINE_integer('num_gpus', 4, """How many GPUs to use.""")
 tf.flags.DEFINE_boolean('log_device_placement', False, """Whether to log device placement.""")
+
+FLAGS.max_steps = math.ceil(FLAGS.max_epochs * cifar10.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size)
 
 
 def tower_loss(scope, images, labels):
