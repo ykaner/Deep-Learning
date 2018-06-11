@@ -251,6 +251,7 @@ def train():
 				return 0.001
 		
 		epoch = 0
+		epoch_time = time.time()
 		for step in range(FLAGS.max_steps):
 			start_time = time.time()
 			_, loss_value, acc_value = sess.run([train_op, loss, acc], feed_dict={lr: lr_dict(step)})
@@ -276,8 +277,17 @@ def train():
 			new_epoch = step // num_batches_per_epoch
 			# evaluate if new epoch started
 			if new_epoch > epoch:
-				epoch = new_epoch
+
+				# save checkpoint
+				checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
+				saver.save(sess, checkpoint_path, global_step=step)
+
 				
+				epoch = new_epoch
+				new_epoch_time = time.time()
+				print('this epoch took: ' + str(new_epoch_time - epoch_time) + ' seconds')
+
+				tf.get_variable_scope().reuse_variables()
 				images, labels = cifar10.inputs(eval_data=True)
 				
 				# Build a Graph that computes the logits predictions from the
@@ -298,17 +308,11 @@ def train():
 				
 				summary_writer = tf.summary.FileWriter(FLAGS.eval_dir, g)
 				
-				tf.get_variable_scope().reuse_variables()
 				cifar10_eval.eval_once(saver, summary_writer, top_k_op, summary_op, sess)
 			
 			if step % 100 == 0:
 				summary_str = sess.run(summary_op, feed_dict={lr: lr_dict(step)})
 				summary_writer.add_summary(summary_str, step)
-			
-			# Save the model checkpoint periodically.
-			if step % 1000 == 0 or (step + 1) == FLAGS.max_steps:
-				checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
-				saver.save(sess, checkpoint_path, global_step=step)
 
 
 def main(argv=None):  # pylint: disable=unused-argument
