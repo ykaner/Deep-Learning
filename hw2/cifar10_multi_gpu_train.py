@@ -74,7 +74,7 @@ def tower_loss(scope, images, labels):
 	with tf.name_scope('total'):
 		y_pred_cls = tf.argmax(logits, axis=1, name="y_pred_cls")
 		
-		correct_prediction = tf.equal(y_pred_cls, tf.argmax(labels, axis=1), name="correct_predictions")
+		correct_prediction = tf.equal(y_pred_cls, labels, name="correct_predictions")
 		accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="accuracy")
 	
 	# Build the portion of the Graph calculating the losses. Note that we will
