@@ -278,6 +278,10 @@ def train():
 			new_epoch = step // num_batches_per_epoch
 			# evaluate if new epoch started
 			if new_epoch > epoch:
+				epoch = new_epoch
+				new_epoch_time = time.time()
+				print('this epoch took: ' + str(new_epoch_time - epoch_time) + ' time')
+				epoch_time = new_epoch_time
 				
 				# save checkpoint
 				checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
