@@ -66,18 +66,20 @@ def eval_once(saver, summary_writer, top_k_op, summary_op, sess=None):
 	  summary_op: Summary op.
 	  sess: session to run on if available.
 	"""
+	is_active_session = sess is not None
 	with tf.Session() if sess is None else sess as sess:
-		ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
-		if ckpt and ckpt.model_checkpoint_path:
-			# Restores from checkpoint
-			saver.restore(sess, ckpt.model_checkpoint_path)
-			# Assuming model_checkpoint_path looks something like:
-			#   /my-favorite-path/cifar10_train/model.ckpt-0,
-			# extract global_step from it.
-			global_step = ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1]
-		else:
-			print('No checkpoint file found')
-			return
+		if not is_active_session:
+			ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
+			if ckpt and ckpt.model_checkpoint_path:
+				# Restores from checkpoint
+				saver.restore(sess, ckpt.model_checkpoint_path)
+				# Assuming model_checkpoint_path looks something like:
+				#   /my-favorite-path/cifar10_train/model.ckpt-0,
+				# extract global_step from it.
+				global_step = ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1]
+			else:
+				print('No checkpoint file found')
+				return
 		
 		# Start the queue runners.
 		coord = tf.train.Coordinator()
