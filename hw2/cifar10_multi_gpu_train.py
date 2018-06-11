@@ -245,7 +245,7 @@ def train():
 				return 0.01
 			else:
 				return 0.001
-			
+		epoch = 0
 		for step in range(FLAGS.max_steps):
 			start_time = time.time()
 			_, loss_value, acc_value = sess.run([train_op, loss, acc], feed_dict={lr: lr_dict(step)})
@@ -267,6 +267,13 @@ def train():
 								example_rate=examples_per_sec,
 								batch_rate=sec_per_batch))
 			
+			new_epoch = step // num_batches_per_epoch
+			if new_epoch > epoch:
+				epoch = new_epoch
+				cifar10_eval.main()
+
+			
+			
 			if step % 100 == 0:
 				summary_str = sess.run(summary_op, feed_dict={lr: lr_dict(step)})
 				summary_writer.add_summary(summary_str, step)
@@ -275,8 +282,6 @@ def train():
 			if step % 1000 == 0 or (step + 1) == FLAGS.max_steps:
 				checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
 				saver.save(sess, checkpoint_path, global_step=step)
-				
-				cifar10_eval.main()
 
 
 def main(argv=None):  # pylint: disable=unused-argument
