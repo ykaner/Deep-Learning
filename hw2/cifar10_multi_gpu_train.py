@@ -243,6 +243,24 @@ def train():
 		
 		summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
 		
+		def get_total_parameters():
+			"""
+			Calculate how match parameters do we have in the graph.
+			:return: The number of parameters in the graph.
+			"""
+			total_parameters = 0
+			for variable in tf.trainable_variables():
+				shape = variable.get_shape()
+				variable_parameters = 1
+				for dim in shape:
+					variable_parameters *= dim.value
+				total_parameters += variable_parameters
+			print(total_parameters)
+			with open('total_parameters' + str(datetime.now().replace(microsecond=0)).replace(':', '-') + '.txt', 'w') as f:
+				f.write(str(total_parameters))
+
+		get_total_parameters()
+		
 		def lr_dict(step):
 			epoch = step // num_batches_per_epoch
 			if epoch < 80:
