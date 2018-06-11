@@ -37,12 +37,12 @@ http://tensorflow.org/tutorials/deep_cnn/
 """
 from __future__ import absolute_import, division, print_function
 
+import math
 import os.path
 import re
 import time
 from datetime import datetime
 
-import math
 import numpy as np
 import tensorflow as tf
 from six.moves import range  # pylint: disable=redefined-builtin
@@ -265,28 +265,27 @@ def train():
 				sec_per_batch = duration / FLAGS.num_gpus
 				
 				print(
-						'\r{timestamp}: Epoch-{epoch:03d}, step {step:d}, loss = {loss:.2f}, acc = {acc:f} ({example_rate:.1f} examples/sec; {batch_rate:.3f} sec/batch)'.format(
+						'{timestamp}: Epoch-{epoch:03d}, step {step:d}, loss = {loss:.2f}, acc = {acc:f} ({example_rate:.1f} examples/sec; {batch_rate:.3f} sec/batch)'.format(
 								timestamp=datetime.now(),
 								epoch=epoch,
 								step=step % num_batches_per_epoch,
 								loss=loss_value,
 								acc=acc_value,
 								example_rate=examples_per_sec,
-								batch_rate=sec_per_batch))
+								batch_rate=sec_per_batch),
+						end='', flush=True)
 			
 			new_epoch = step // num_batches_per_epoch
 			# evaluate if new epoch started
 			if new_epoch > epoch:
-
 				# save checkpoint
 				checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
 				saver.save(sess, checkpoint_path, global_step=step)
-
 				
 				epoch = new_epoch
 				new_epoch_time = time.time()
 				print('this epoch took: ' + str(new_epoch_time - epoch_time) + ' seconds')
-
+				
 				tf.get_variable_scope().reuse_variables()
 				images, labels = cifar10.inputs(eval_data=True)
 				
