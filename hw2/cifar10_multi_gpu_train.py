@@ -265,7 +265,7 @@ def train():
 				sec_per_batch = duration / FLAGS.num_gpus
 				
 				print(
-						'{timestamp}: Epoch-{epoch:03d}, step {step:d}, loss = {loss:.2f}, acc = {acc:f} ({example_rate:.1f} examples/sec; {batch_rate:.3f} sec/batch)'.format(
+						'\r{timestamp}: Epoch-{epoch:03d}, step {step:d}, loss = {loss:.2f}, acc = {acc:f} ({example_rate:.1f} examples/sec; {batch_rate:.3f} sec/batch)'.format(
 								timestamp=datetime.now(),
 								epoch=epoch,
 								step=step % num_batches_per_epoch,
@@ -273,7 +273,7 @@ def train():
 								acc=acc_value,
 								example_rate=examples_per_sec,
 								batch_rate=sec_per_batch),
-						end='', flush=True)
+						end='')
 			
 			new_epoch = step // num_batches_per_epoch
 			# evaluate if new epoch started
