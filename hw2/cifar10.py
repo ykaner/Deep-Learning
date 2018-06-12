@@ -181,15 +181,13 @@ def inference(images, keep_prob=1.0):
 		
 		block2_1 = functions.residual_block(block1_2, 3, [16, 32], dropout=keep_prob, layer_name='residual_block2_1', option=net_option)
 		
-		block2_2 = functions.residual_block(block2_1, 3, [32, 32], dropout=keep_prob, layer_name='residual_block2_2', option=net_option)
+		block2_2 = functions.residual_block(block2_1, 1, [32, 32], dropout=keep_prob, layer_name='residual_block2_2', option=net_option)
 		
 		block3_1 = functions.residual_block(block2_2, 3, [32, 64], dropout=keep_prob, layer_name='residual_block3_1', option=net_option)
 		
-		block3_2 = functions.residual_block(block3_1, 3, [64, 64], dropout=keep_prob, layer_name='residual_block3_2', option=net_option)
+		block3_2 = functions.residual_block(block3_1, 1, [64, 64], dropout=keep_prob, layer_name='residaul_block3_3', option=net_option)
 		
-		block3_3 = functions.residual_block(block3_2, 1, [64, 64], dropout=keep_prob, layer_name='residaul_block3_3', option=net_option)
-		
-		gap = tf.layers.average_pooling2d(block3_3, [8, 8], [8, 8], padding='VALID', name='gap')
+		gap = tf.layers.average_pooling2d(block3_2, [8, 8], [8, 8], padding='VALID', name='gap')
 		
 		flat = tf.reshape(gap, [-1, 64], name="flat")
 		
