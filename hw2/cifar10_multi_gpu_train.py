@@ -252,7 +252,9 @@ def train():
 					variable_parameters *= dim.value
 				total_parameters += variable_parameters
 			print(total_parameters)
-			with open('total_parameters' + str(datetime.now().replace(microsecond=0)).replace(':', '-') + '.txt', 'w') as f:
+			dtime = datetime.now()
+			dtime = str(dtime.replace(microsecond=0, second=0, minute=0))
+			with open('total_parameters' + dtime + '.txt', 'w') as f:
 				f.write(str(total_parameters))
 
 		get_total_parameters()
@@ -293,11 +295,16 @@ def train():
 			
 			new_epoch = step // num_batches_per_epoch
 			# evaluate if new epoch started
+			global acc_file
+			acc_file = 'accuracy_' + str(datetime.now().replace(microsecond=0, second=0, minute=0)) + '.txt' if acc_file not in globals() else acc_file
 			if new_epoch > epoch:
 				epoch = new_epoch
 				new_epoch_time = time.time()
 				print('\nthis epoch took: ' + str(new_epoch_time - epoch_time) + ' time')
 				epoch_time = new_epoch_time
+				
+				with open(acc_file, 'a' if os.path.exists(acc_file) else 'w') as f:
+					f.write(str(acc_value) + '\n')
 				
 				# save checkpoint
 				checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')

@@ -106,10 +106,10 @@ def eval_once(saver, summary_writer, top_k_op, summary_op, sess=None, feed_dict=
 		precision = true_count / total_sample_count
 		print('%s: precision @ 1 = %.3f' % (datetime.now(), precision * 100))
 		global save_path
-		save_path = str(datetime.now().year) + str(datetime.now().month) + str(datetime.now().day) + str(
-			datetime.now().hour) + '.txt'
+		dtime = datetime.now()
+		save_path = str(dtime.replace(microsecond=0, second=0, minute=0)) if save_path not in globals() else save_path
 		with open(save_path, 'w' if not os.path.exists(save_path) else 'a') as f:
-			f.writelines('%s: precision @ 1 = %.3f' % (datetime.now(), precision * 100))
+			f.write('%s: precision @ 1 = %.3f\n' % (datetime.now(), precision * 100))
 		
 		summary = tf.Summary()
 		summary.ParseFromString(sess.run(summary_op, feed_dict=feed_dict))
