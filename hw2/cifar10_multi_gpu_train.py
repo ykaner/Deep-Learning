@@ -13,12 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""A binary to train CIFAR-10 using multiple GPUs with synchronous updates.
-
-Accuracy:
-cifar10_multi_gpu_train.py achieves ~86% accuracy after 100K steps (256
-epochs of data) as judged by cifar10_eval.py.
-
+"""
 Speed: With batch_size 128.
 
 System        | Step Time (sec/batch)  |     Accuracy
@@ -57,6 +52,7 @@ tf.flags.DEFINE_integer('max_epochs', 200, """Number of batches to run.""")
 tf.flags.DEFINE_integer('num_gpus', 4, """How many GPUs to use.""")
 tf.flags.DEFINE_boolean('log_device_placement', False, """Whether to log device placement.""")
 tf.flags.DEFINE_integer('max_steps', 100000, 'Dont use it. calculated out from max_epochs')
+tf.flags.DEFINE_boolean('is_eval', True, 'is evaluate each epoch')
 
 FLAGS.max_steps = math.ceil(FLAGS.max_epochs * cifar10.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size)
 
@@ -307,9 +303,10 @@ def train():
 				checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
 				saver.save(sess, checkpoint_path, global_step=step)
 
-				ev_time = time.time()
-				cifar10_eval.main()
-				print('eval time:' + str(time.time() - ev_time))
+				if FLAGS.is_eval:
+					ev_time = time.time()
+					cifar10_eval.main()
+					print('eval time:' + str(time.time() - ev_time))
 
 			if step % 100 == 0:
 				summary_str = sess.run(summary_op, feed_dict={lr: lr_dict(step), keep_prob: 0.7})
