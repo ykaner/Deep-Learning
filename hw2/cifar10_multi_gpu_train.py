@@ -52,7 +52,7 @@ tf.flags.DEFINE_integer('max_epochs', 200, """Number of batches to run.""")
 tf.flags.DEFINE_integer('num_gpus', 4, """How many GPUs to use.""")
 tf.flags.DEFINE_boolean('log_device_placement', False, """Whether to log device placement.""")
 tf.flags.DEFINE_integer('max_steps', 100000, 'Dont use it. calculated out from max_epochs')
-tf.flags.DEFINE_boolean('is_eval', True, 'is evaluate each epoch')
+tf.flags.DEFINE_boolean('is_eval', False, 'is evaluate each epoch')
 
 FLAGS.max_steps = math.ceil(FLAGS.max_epochs * cifar10.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size)
 
@@ -76,7 +76,9 @@ def tower_loss(scope, images, labels, keep_prob=1.0):
 		
 		correct_prediction = tf.equal(y_pred_cls, tf.cast(labels, tf.int64), name="correct_predictions")
 		accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="accuracy")
-	
+		
+		tf.add_to_collection('accuracy', accuracy)
+		
 	# Build the portion of the Graph calculating the losses. Note that we will
 	# assemble the total_loss using a custom function below.
 	_ = cifar10.loss(logits, labels)
@@ -95,6 +97,12 @@ def tower_loss(scope, images, labels, keep_prob=1.0):
 		loss_name = re.sub('{0}_[0-9]*/'.format(cifar10.TOWER_NAME), '', l.op.name)
 		tf.summary.scalar(loss_name, l)
 	
+	accuracies = tf.get_collection('accuracy')
+	
+	for ac in accuracies:
+		ac_name = re.sub('{0}_[0-9]*/'.format(cifar10.TOWER_NAME), '', ac.op.name)
+		tf.summary.scalar(ac_name, ac)
+
 	return total_loss, accuracy
 
 
@@ -296,7 +304,7 @@ def train():
 			new_epoch = step // num_batches_per_epoch
 			# evaluate if new epoch started
 			global acc_file
-			acc_file = 'accuracy_' + str(datetime.now().replace(microsecond=0, second=0, minute=0)) + '.txt' if acc_file not in globals() else acc_file
+			acc_file = 'accuracy_' + str(datetime.now().replace(microsecond=0, second=0, minute=0)) + '.txt' if 'acc_file' not in globals() else acc_file
 			if new_epoch > epoch:
 				epoch = new_epoch
 				new_epoch_time = time.time()
