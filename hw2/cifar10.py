@@ -196,7 +196,7 @@ def inference(images, keep_prob=1.0):
 		with tf.device('cpu:0'):
 			tf.summary.histogram("flat", flat)
 		
-		logits = tf.nn.softmax(tf.layers.dense(inputs=flat, units=_NUM_CLASSES), name="softmax")
+		logits = tf.layers.dense(inputs=flat, units=_NUM_CLASSES)
 	
 	return logits
 

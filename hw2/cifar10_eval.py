@@ -33,13 +33,14 @@ http://tensorflow.org/tutorials/deep_cnn/
 from __future__ import absolute_import, division, print_function
 
 import math
+import os
 import time
 from datetime import datetime
-import os
 
-from . import cifar10
 import numpy as np
 import tensorflow as tf
+
+from . import cifar10
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -104,9 +105,11 @@ def eval_once(saver, summary_writer, top_k_op, summary_op, sess=None, feed_dict=
 		# Compute precision @ 1.
 		precision = true_count / total_sample_count
 		print('%s: precision @ 1 = %.3f' % (datetime.now(), precision * 100))
-		save_path = str(datetime.year) + str(datetime.month) + str(datetime.day) + '.txt'
+		global save_path
+		save_path = str(datetime.now().year) + str(datetime.now().month) + str(datetime.now().day) + str(
+			datetime.now().hour) + '.txt'
 		with open(save_path, 'w' if not os.path.exists(save_path) else 'a') as f:
-			f.write('%s: precision @ 1 = %.3f' % (datetime.now(), precision * 100))
+			f.writelines('%s: precision @ 1 = %.3f' % (datetime.now(), precision * 100))
 		
 		summary = tf.Summary()
 		summary.ParseFromString(sess.run(summary_op, feed_dict=feed_dict))

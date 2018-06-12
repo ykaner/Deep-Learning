@@ -274,7 +274,7 @@ def train():
 		epoch_time = time.time()
 		for step in range(FLAGS.max_steps):
 			start_time = time.time()
-			_, loss_value, acc_value = sess.run([train_op, loss, acc], feed_dict={lr: lr_dict(step), keep_prob: 0.7})
+			_, loss_value, acc_value = sess.run([train_op, loss, acc], feed_dict={lr: lr_dict(step), keep_prob: 0.5})
 			duration = time.time() - start_time
 			
 			assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
