@@ -57,7 +57,7 @@ tf.flags.DEFINE_boolean('is_eval', False, 'is evaluate each epoch')
 FLAGS.max_steps = math.ceil(FLAGS.max_epochs * cifar10.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size)
 
 
-def tower_loss(scope, images, labels, keep_prob=1.0):
+def tower_loss(scope, images, labels, keep_prob=1.0, last_active_prob=1.0):
 	"""
 	Calculate the total loss on a single tower running the CIFAR model.
 	
@@ -69,7 +69,7 @@ def tower_loss(scope, images, labels, keep_prob=1.0):
 	"""
 	
 	# Build inference Graph.
-	logits = cifar10.inference(images, keep_prob=keep_prob)
+	logits = cifar10.inference(images, keep_prob=keep_prob, last_active_prob=last_active_prob)
 	
 	with tf.name_scope('total'):
 		y_pred_cls = tf.argmax(logits, axis=1, name="y_pred_cls")
@@ -78,7 +78,7 @@ def tower_loss(scope, images, labels, keep_prob=1.0):
 		accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="accuracy")
 		
 		tf.add_to_collection('accuracy', accuracy)
-		
+	
 	# Build the portion of the Graph calculating the losses. Note that we will
 	# assemble the total_loss using a custom function below.
 	_ = cifar10.loss(logits, labels)
@@ -102,7 +102,7 @@ def tower_loss(scope, images, labels, keep_prob=1.0):
 	for ac in accuracies:
 		ac_name = re.sub('{0}_[0-9]*/'.format(cifar10.TOWER_NAME), '', ac.op.name)
 		tf.summary.scalar(ac_name, ac)
-
+	
 	return total_loss, accuracy
 
 
@@ -161,6 +161,7 @@ def train():
 		# 		staircase=True)
 		
 		keep_prob = tf.placeholder(tf.float32, name='keep_prob')
+		last_active_prob = tf.placeholder(tf.float32, name='last_active_prob')
 		
 		lr = tf.placeholder(tf.float32, name='learning_rate')
 		
@@ -182,7 +183,8 @@ def train():
 						# Calculate the loss for one tower of the CIFAR model. This function
 						# constructs the entire CIFAR model but shares the variables across
 						# all towers.
-						loss, acc = tower_loss(scope, image_batch, label_batch, keep_prob=keep_prob)
+						loss, acc = tower_loss(scope, image_batch, label_batch, keep_prob=keep_prob,
+						                       last_active_prob=last_active_prob)
 						
 						# Reuse variables for the next tower.
 						tf.get_variable_scope().reuse_variables()
@@ -264,7 +266,7 @@ def train():
 			dtime = str(dtime.replace(microsecond=0, second=0, minute=0))
 			with open('total_parameters' + dtime + '.txt', 'w') as f:
 				f.write(str(total_parameters))
-
+		
 		get_total_parameters()
 		
 		def lr_dict(step):
@@ -304,7 +306,8 @@ def train():
 			new_epoch = step // num_batches_per_epoch
 			# evaluate if new epoch started
 			global acc_file
-			acc_file = 'accuracy_' + str(datetime.now().replace(microsecond=0, second=0, minute=0)) + '.txt' if 'acc_file' not in globals() else acc_file
+			acc_file = 'accuracy_' + str(datetime.now().replace(microsecond=0, second=0,
+			                                                    minute=0)) + '.txt' if 'acc_file' not in globals() else acc_file
 			if new_epoch > epoch:
 				epoch = new_epoch
 				new_epoch_time = time.time()
@@ -317,12 +320,12 @@ def train():
 				# save checkpoint
 				checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
 				saver.save(sess, checkpoint_path, global_step=step)
-
+				
 				if FLAGS.is_eval:
 					ev_time = time.time()
 					cifar10_eval.main()
 					print('eval time:' + str(time.time() - ev_time))
-
+			
 			if step % 100 == 0:
 				summary_str = sess.run(summary_op, feed_dict={lr: lr_dict(step), keep_prob: 0.7})
 				summary_writer.add_summary(summary_str, step)

@@ -169,13 +169,12 @@ def inputs(eval_data):
 	return images, labels
 
 
-def inference(images, keep_prob=1.0):
+def inference(images, keep_prob=1.0, last_active_prob=1.0):
 	_NUM_CLASSES = 10
 	net_option = 'A'
 	k_wide = 0.5
 	
 	n_blocks = 6
-	last_active_prob = 0.75
 	
 	def block_active_prob(index):
 		return 1 - (index / n_blocks) * (1 - last_active_prob)
