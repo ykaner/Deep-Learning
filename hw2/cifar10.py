@@ -172,7 +172,7 @@ def inputs(eval_data):
 def inference(images, keep_prob=1.0, last_active_prob=1.0):
 	_NUM_CLASSES = 10
 	net_option = 'A'
-	k_wide = 0.5
+	k_wide = 0.875
 	
 	n_blocks = 6
 	
