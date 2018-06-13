@@ -36,9 +36,9 @@ def residual_block(input_tensor, ksize, shapes, dropout=None, layer_name='res_bl
 			is_active = tf.floor(random_tensor)
 			
 			out_shape = out.shape
-			out = tf.transpose(tf.reshape(out, [-1, reduce((lambda _a, _b: _a * _b), out_shape[1:])]), [0, 1])
+			out = tf.transpose(tf.reshape(out, [-1, reduce((lambda _a, _b: _a * _b), out_shape[1:])]), [1, 0])
 			out = out * is_active
-			out = tf.reshape(tf.transpose(out, [0, 1]), out_shape)
+			out = tf.reshape(tf.transpose(out, [1, 0]), out_shape)
 			
 			# result = tf.nn.relu(out * is_active + shortcut_1, name)
 			# result = tf.cond(tf.equal(is_active, 1), lambda: shortcut_1, lambda: out + shortcut_1)
