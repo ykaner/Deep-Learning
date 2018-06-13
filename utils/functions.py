@@ -1,4 +1,5 @@
 import math
+from functools import reduce
 
 import tensorflow as tf
 
@@ -31,12 +32,18 @@ def residual_block(input_tensor, ksize, shapes, dropout=None, layer_name='res_bl
 		
 		def conv_act(out, name):
 			random_tensor = active_prob
-			random_tensor += tf.random_uniform([1], dtype=out.dtype)
+			random_tensor += tf.random_uniform(out.shape[0], dtype=out.dtype)
 			is_active = tf.floor(random_tensor)
+			
+			out_shape = out.shape
+			out = tf.transpose(tf.reshape(out, [-1, reduce((lambda _a, _b: _a * _b), out_shape[1:])]), [0, 1])
+			out = out * is_active
+			out = tf.reshape(tf.transpose(out, [0, 1]), out_shape)
+			
 			# result = tf.nn.relu(out * is_active + shortcut_1, name)
-			result = tf.cond(tf.equal(is_active, 1), lambda: shortcut_1, lambda: out + shortcut_1)
-			result = tf.nn.relu(result, name)
-			return result
+			# result = tf.cond(tf.equal(is_active, 1), lambda: shortcut_1, lambda: out + shortcut_1)
+			# result = tf.nn.relu(result, name)
+			return tf.nn.relu(out + shortcut_1, name)
 		
 		strides = [1] * 4 if not reshape else [1, 2, 2, 1]
 		conv1 = conv2d_layer(input_tensor, [ksize, ksize, shape_in, shape_out], layer_name="conv_1", batch_n=True,
