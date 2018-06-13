@@ -32,7 +32,7 @@ def residual_block(input_tensor, ksize, shapes, dropout=None, layer_name='res_bl
 		
 		def conv_act(out, name):
 			random_tensor = active_prob
-			random_tensor += tf.random_uniform(out.shape[0], dtype=out.dtype)
+			random_tensor += tf.random_uniform(out.shape[:1], dtype=out.dtype)
 			is_active = tf.floor(random_tensor)
 			
 			out_shape = out.shape
