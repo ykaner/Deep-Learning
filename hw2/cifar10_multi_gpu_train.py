@@ -48,7 +48,7 @@ from . import cifar10_eval
 FLAGS = tf.flags.FLAGS
 
 tf.flags.DEFINE_string('train_dir', '/tmp/cifar10_train', """Directory where to write event logs and checkpoint.""")
-tf.flags.DEFINE_integer('max_epochs', 200, """Number of batches to run.""")
+tf.flags.DEFINE_integer('max_epochs', 150, """Number of batches to run.""")
 tf.flags.DEFINE_integer('num_gpus', 4, """How many GPUs to use.""")
 tf.flags.DEFINE_boolean('log_device_placement', False, """Whether to log device placement.""")
 tf.flags.DEFINE_integer('max_steps', 100000, 'Dont use it. calculated out from max_epochs')
@@ -269,9 +269,9 @@ def train():
 		
 		def lr_dict(step):
 			epoch = step // num_batches_per_epoch
-			if epoch < 80:
+			if epoch < 60:
 				return 0.1
-			elif epoch < 120:
+			elif epoch < 90:
 				return 0.01
 			else:
 				return 0.001
