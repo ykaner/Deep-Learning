@@ -181,9 +181,9 @@ def inference(images, keep_prob=1.0):
 		return 1 - (index / n_blocks) * (1 - last_active_prob)
 	
 	with tf.variable_scope('ResNet'):
-		conv0 = functions.conv2d_layer(images, [3, 3, 3, int(8 * k_wide)], layer_name="conv_0", batch_n=False)
+		conv0 = functions.conv2d_layer(images, [3, 3, 3, int(16 * k_wide)], layer_name="conv_0", batch_n=False)
 		
-		block1_1 = functions.residual_block(conv0, 3, [8 * k_wide, 16 * k_wide], dropout=keep_prob,
+		block1_1 = functions.residual_block(conv0, 3, [16 * k_wide, 16 * k_wide], dropout=keep_prob,
 		                                    layer_name='residual_block1_1', option=net_option,
 		                                    active_prob=block_active_prob(1))
 		
