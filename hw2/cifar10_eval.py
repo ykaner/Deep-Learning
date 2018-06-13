@@ -54,7 +54,7 @@ tf.app.flags.DEFINE_integer('eval_interval_secs', 60 * 2,
                             """How often to run the eval.""")
 tf.app.flags.DEFINE_integer('num_examples', 10000,
                             """Number of examples to run.""")
-tf.app.flags.DEFINE_boolean('eval_once', False,
+tf.app.flags.DEFINE_boolean('eval_times', 200,
                             """Whether to run eval only once.""")
 
 
@@ -150,10 +150,8 @@ def evaluate():
 		
 		summary_writer = tf.summary.FileWriter(FLAGS.eval_dir, g)
 		
-		while True:
+		for i in range(FLAGS.eval_times):
 			eval_once(saver, summary_writer, top_k_op, summary_op)
-			if FLAGS.eval_once:
-				break
 			time.sleep(FLAGS.eval_interval_secs)
 
 
