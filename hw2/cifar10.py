@@ -190,7 +190,7 @@ def inference(images, keep_prob=1.0):
 		
 		gap = tf.layers.average_pooling2d(block3_2, [8, 8], [8, 8], padding='VALID', name='gap')
 		
-		flat = tf.reshape(gap, [-1, 64], name="flat")
+		flat = tf.reshape(gap, [-1, int(64 * k_wide)], name="flat")
 		
 		with tf.device('cpu:0'):
 			tf.summary.histogram("flat", flat)
