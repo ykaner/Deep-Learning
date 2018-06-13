@@ -19,6 +19,7 @@ def variable_summaries(var):
 
 def residual_block(input_tensor, ksize, shapes, dropout=None, layer_name='res_block', option='A'):
 	shape_in, shape_out = shapes
+	shapes = int(shape_in), int(shape_out)
 	
 	if dropout is not None:
 		dropout = 1

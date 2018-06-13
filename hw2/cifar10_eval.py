@@ -107,7 +107,7 @@ def eval_once(saver, summary_writer, top_k_op, summary_op, sess=None, feed_dict=
 		print('%s: precision @ 1 = %.3f' % (datetime.now(), precision * 100))
 		global save_path
 		dtime = datetime.now()
-		save_path = str(dtime.replace(microsecond=0, second=0, minute=0)) if 'save_path' not in globals() else save_path
+		save_path = 'percision1_' + str(dtime.replace(microsecond=0, second=0, minute=0)) if 'save_path' not in globals() else save_path
 		with open(save_path, 'w' if not os.path.exists(save_path) else 'a') as f:
 			f.write('%s: precision @ 1 = %.3f\n' % (datetime.now(), precision * 100))
 		
