@@ -33,7 +33,9 @@ def residual_block(input_tensor, ksize, shapes, dropout=None, layer_name='res_bl
 			random_tensor = active_prob
 			random_tensor += tf.random_uniform([1], dtype=out.dtype)
 			is_active = tf.floor(random_tensor)
-			result = tf.nn.relu(tf.scalar_mul(out, is_active) + shortcut_1, name)
+			# result = tf.nn.relu(out * is_active + shortcut_1, name)
+			result = tf.cond(is_active == 1, shortcut_1, out + shortcut_1)
+			result = tf.nn.relu(result, name)
 			return result
 		
 		strides = [1] * 4 if not reshape else [1, 2, 2, 1]
