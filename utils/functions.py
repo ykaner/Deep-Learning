@@ -17,7 +17,7 @@ def variable_summaries(var):
 			tf.summary.histogram('histogram', var)
 
 
-def residual_block(input_tensor, ksize, shapes, dropout=None, layer_name='res_block', option='A'):
+def residual_block(input_tensor, ksize, shapes, dropout=None, layer_name='res_block', option='A', active_prob=1.0):
 	shape_in, shape_out = shapes
 	shapes = int(shape_in), int(shape_out)
 	
@@ -30,7 +30,14 @@ def residual_block(input_tensor, ksize, shapes, dropout=None, layer_name='res_bl
 		shortcut_1 = input_tensor if not reshape else shortcut(input_tensor, shapes, layer_name='shortcut', option=option)
 		
 		def conv_act(out, name):
-			return tf.nn.relu(out + shortcut_1, name)
+			random_tensor = active_prob
+			random_tensor += tf.random_uniform([1], dtype=out.dtype)
+			is_active = tf.floor(random_tensor)
+			if is_active:
+				result = tf.nn.relu(out + shortcut_1, name)
+			else:
+				result = tf.nn.relu(shortcut_1, name)
+			return result
 		
 		strides = [1] * 4 if not reshape else [1, 2, 2, 1]
 		conv1 = conv2d_layer(input_tensor, [ksize, ksize, shape_in, shape_out], layer_name="conv_1", batch_n=True,
@@ -40,6 +47,7 @@ def residual_block(input_tensor, ksize, shapes, dropout=None, layer_name='res_bl
 		
 		conv2 = conv2d_layer(drop_layer, [ksize, ksize, shape_out, shape_out], layer_name="conv_2", batch_n=True,
 		                     act=conv_act)
+		
 	
 	return conv2
 

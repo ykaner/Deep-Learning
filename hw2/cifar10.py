@@ -173,20 +173,39 @@ def inference(images, keep_prob=1.0):
 	_NUM_CLASSES = 10
 	net_option = 'A'
 	k_wide = 0.5
+	
+	n_blocks = 6
+	last_active_prob = 0.75
+	
+	def block_active_prob(index):
+		return 1 - (index / n_blocks) * (1 - last_active_prob)
+	
 	with tf.variable_scope('ResNet'):
 		conv0 = functions.conv2d_layer(images, [3, 3, 3, int(16 * k_wide)], layer_name="conv_0", batch_n=False)
 		
-		block1_1 = functions.residual_block(conv0, 3, [16 * k_wide, 16 * k_wide], dropout=keep_prob, layer_name='residual_block1_1', option=net_option)
+		block1_1 = functions.residual_block(conv0, 3, [16 * k_wide, 16 * k_wide], dropout=keep_prob,
+		                                    layer_name='residual_block1_1', option=net_option,
+		                                    active_prob=block_active_prob(1))
 		
-		block1_2 = functions.residual_block(block1_1, 3, [16 * k_wide, 16 * k_wide], dropout=keep_prob, layer_name='residual_block1_2', option=net_option)
+		block1_2 = functions.residual_block(block1_1, 3, [16 * k_wide, 16 * k_wide], dropout=keep_prob,
+		                                    layer_name='residual_block1_2', option=net_option,
+		                                    active_prob=block_active_prob(2))
 		
-		block2_1 = functions.residual_block(block1_2, 3, [16 * k_wide, 32 * k_wide], dropout=keep_prob, layer_name='residual_block2_1', option=net_option)
+		block2_1 = functions.residual_block(block1_2, 3, [16 * k_wide, 32 * k_wide], dropout=keep_prob,
+		                                    layer_name='residual_block2_1', option=net_option,
+		                                    active_prob=block_active_prob(3))
 		
-		block2_2 = functions.residual_block(block2_1, 1, [32 * k_wide, 32 * k_wide], dropout=keep_prob, layer_name='residual_block2_2', option=net_option)
+		block2_2 = functions.residual_block(block2_1, 3, [32 * k_wide, 32 * k_wide], dropout=keep_prob,
+		                                    layer_name='residual_block2_2', option=net_option,
+		                                    active_prob=block_active_prob(4))
 		
-		block3_1 = functions.residual_block(block2_2, 3, [32 * k_wide, 64 * k_wide], dropout=keep_prob, layer_name='residual_block3_1', option=net_option)
+		block3_1 = functions.residual_block(block2_2, 3, [32 * k_wide, 64 * k_wide], dropout=keep_prob,
+		                                    layer_name='residual_block3_1', option=net_option,
+		                                    active_prob=block_active_prob(5))
 		
-		block3_2 = functions.residual_block(block3_1, 1, [64 * k_wide, 64 * k_wide], dropout=keep_prob, layer_name='residaul_block3_3', option=net_option)
+		block3_2 = functions.residual_block(block3_1, 1, [64 * k_wide, 64 * k_wide], dropout=keep_prob,
+		                                    layer_name='residaul_block3_3', option=net_option,
+		                                    active_prob=block_active_prob(6))
 		
 		gap = tf.layers.average_pooling2d(block3_2, [8, 8], [8, 8], padding='VALID', name='gap')
 		
