@@ -54,7 +54,7 @@ tf.app.flags.DEFINE_integer('eval_interval_secs', 60 * 2,
                             """How often to run the eval.""")
 tf.app.flags.DEFINE_integer('num_examples', 10000,
                             """Number of examples to run.""")
-tf.app.flags.DEFINE_integer('eval_times', 200,
+tf.app.flags.DEFINE_integer('eval_times', 1,
                             """Whether to run eval only once.""")
 
 
@@ -133,8 +133,8 @@ def evaluate():
 		images, labels = cifar10.inputs(eval_data=eval_data)
 		
 		# Build a Graph that computes the logits predictions from the
-		# inference model.
-		logits = cifar10.inference(images)
+		# ResNet model.
+		logits = cifar10.ResNet(images)
 		
 		# Calculate predictions.
 		top_k_op = tf.nn.in_top_k(logits, labels, 1)
@@ -152,7 +152,8 @@ def evaluate():
 		
 		for i in range(FLAGS.eval_times):
 			eval_once(saver, summary_writer, top_k_op, summary_op)
-			time.sleep(FLAGS.eval_interval_secs)
+			if not i == FLAGS.eval_times - 1:
+				time.sleep(FLAGS.eval_interval_secs)
 
 
 def main(argv=None):  # pylint: disable=unused-argument

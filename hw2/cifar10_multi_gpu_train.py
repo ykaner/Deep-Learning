@@ -36,8 +36,8 @@ def tower_loss(scope, images, labels, keep_prob=1.0, last_active_prob=1.0):
 	:returns: Tensor of shape [] containing the total loss for a batch of data
 	"""
 	
-	# Build inference Graph.
-	logits = cifar10.inference(images, keep_prob=keep_prob, last_active_prob=last_active_prob)
+	# Build ResNet Graph.
+	logits = cifar10.ResNet(images, keep_prob=keep_prob, last_active_prob=last_active_prob)
 	
 	with tf.name_scope('total'):
 		y_pred_cls = tf.argmax(logits, axis=1, name="y_pred_cls")
@@ -135,7 +135,8 @@ def train():
 		
 		# Create an optimizer that performs gradient descent.
 		# opt = tf.train.GradientDescentOptimizer(lr)
-		opt = tf.train.MomentumOptimizer(lr, momentum=0.9, use_nesterov=True, name='Momentum_Optimizer')
+		# opt = tf.train.MomentumOptimizer(lr, momentum=0.9, use_nesterov=True, name='Momentum_Optimizer')
+		opt = tf.train.AdamOptimizer(lr)  # just for the second plot
 		
 		# Get images and labels for CIFAR-10.
 		images, labels = cifar10.distorted_inputs()

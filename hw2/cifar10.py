@@ -22,8 +22,8 @@ Summary of available functions:
  # evaluations, use inputs() instead.
  inputs, labels = distorted_inputs()
 
- # Compute inference on the model inputs to make a prediction.
- predictions = inference(inputs)
+ # Compute ResNet on the model inputs to make a prediction.
+ predictions = ResNet(inputs)
 
  # Compute the total loss of the prediction with respect to the labels.
  loss = loss(predictions, labels)
@@ -169,7 +169,7 @@ def inputs(eval_data):
 	return images, labels
 
 
-def inference(images, keep_prob=1.0, last_active_prob=1.0):
+def ResNet(images, keep_prob=1.0, last_active_prob=1.0):
 	_NUM_CLASSES = 10
 	net_option = 'A'
 	k_wide = 0.875
@@ -224,7 +224,7 @@ def loss(logits, labels):
 	
 	Add summary for "Loss" and "Loss/avg".
 	
-	:arg logits: Logits from inference().
+	:arg logits: Logits from ResNet().
 	:arg labels: Labels from distorted_inputs or inputs(). 1-D tensor of shape [batch_size]
 	
 	:returns: Loss tensor of type float.
