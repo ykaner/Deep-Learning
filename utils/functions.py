@@ -22,8 +22,8 @@ def residual_block(input_tensor, ksize, shapes, dropout=None, layer_name='res_bl
 	shape_in, shape_out = shapes
 	shapes = int(shape_in), int(shape_out)
 	
-	if dropout is not None:
-		dropout = 1
+	if dropout is None:
+		dropout = 1.0
 	
 	reshape = shape_in != shape_out
 	

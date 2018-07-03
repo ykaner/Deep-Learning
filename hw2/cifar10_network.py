@@ -70,8 +70,8 @@ def avg_pool_2x2(x, name):
 # 	:returns: Tensor of shape [] containing the total loss for a batch of data
 # 	"""
 #
-# 	# Build inference Graph.
-# 	logits = cifar10.inference(images)
+# 	# Build ResNet Graph.
+# 	logits = cifar10.ResNet(images)
 #
 # 	# Build the portion of the Graph calculating the losses. Note that we will
 # 	# assemble the total_loss using a custom function below.
